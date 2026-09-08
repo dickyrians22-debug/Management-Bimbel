@@ -45,7 +45,7 @@ import {
   isSystemIncomeCategory,
   resolveTutorName,
 } from '../../utils/storage';
-import { exportToExcel, exportElementToPng } from '../../utils/exportUtils';
+import { exportToExcel, exportMultiSheetExcel, exportElementToPng } from '../../utils/exportUtils';
 
 interface ProfitLossViewProps {
   attendance: AttendanceRecord[];
@@ -92,7 +92,8 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     attendance,
     incomes,
     expenses,
-    settings
+    settings,
+    students
   );
 
   const totalAnnualAccrualIncome = annualPLData.reduce((sum, item) => sum + item.accrualIncome, 0);
@@ -212,19 +213,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     )
     .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-  const totalNonSppIncome = regFeeIncome + moduleIncome + tryOutIncome + otherNonSppIncome;
-
-  // Total Pendapatan Operasional yang Diakui dari Buku Kas
-  const totalMonthlyRevenue = totalSppPaidCashBook + totalNonSppIncome;
-  const grandTotalMonthlyRevenueAccrual = totalMonthlyRevenue;
-
-  // Kas Masuk Riil di Bulan ini (Semua kas masuk yang diterima di kasir pada tanggal bulan ini)
-  const incomesReceivedInMonth = incomes.filter(
-    (inc) => inc.datePaid && inc.datePaid.startsWith(targetMonthPrefix)
-  );
-  const totalCashIncomeMonth = incomesReceivedInMonth.reduce((sum, inc) => sum + (inc.amount || 0), 0);
-
-  // 3. Pemetaan Rincian Siswa & SPP per Jenjang / Tipe Kelas
+  // 3. Pemetaan Rincian Siswa & SPP MURNI dari Buku Kas (Presensi hanya untuk info sesi hadir)
   const studentBreakdownMap: {
     [key: string]: {
       studentId?: string;
@@ -239,7 +228,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     };
   } = {};
 
-  // Seed dari data siswa aktif / presensi
+  // Inisialisasi daftar siswa: presensi hanya mencatat jumlah sesi hadir (tidak dikalikan uang)
   students.forEach((std) => {
     const stdKey = std.id || std.code || std.name.toLowerCase();
     const stdAtt = presentAttendances.filter(
@@ -249,18 +238,8 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         (a.studentName && a.studentName.toLowerCase() === std.name.toLowerCase())
     );
     const sessions = stdAtt.length;
-    const rate =
-      std.pricePerSession > 0
-        ? std.pricePerSession
-        : std.monthlyFee
-        ? Math.round(std.monthlyFee / 8)
-        : std.level === 'SMP'
-        ? 60000
-        : 50000;
 
-    // Perhitungan murni berbasis sesi hadir terlaksana x tarif per sesi
-    const accrual = sessions * rate;
-
+    // Nominal pendapatan MURNI dari Buku Kas (awalan 0, bukan perkalian absensi)
     studentBreakdownMap[stdKey] = {
       studentId: std.id,
       studentCode: std.code,
@@ -268,13 +247,13 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
       level: std.level || 'SD',
       classType: std.classType || 'Grup',
       sessions,
-      accrualAmount: accrual,
+      accrualAmount: 0,
       paidAmount: 0,
       paymentCount: 0,
     };
   });
 
-  // Agregasi seluruh pembayaran SPP dari Buku Kas ke dalam map siswa
+  // Agregasi seluruh pembayaran SPP MURNI dari Buku Kas Masuk ke dalam map siswa
   sppCashIncomesForMonth.forEach((inc) => {
     const matchedStd = students.find(
       (s) =>
@@ -296,17 +275,16 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         level: matchedStd?.level || 'SD',
         classType: matchedStd?.classType || 'Grup',
         sessions: 0,
-        accrualAmount: inc.amount || 0,
+        accrualAmount: 0,
         paidAmount: 0,
         paymentCount: 0,
       };
     }
 
-    studentBreakdownMap[key].paidAmount += (inc.amount || 0);
+    const incomeAmount = inc.amount || 0;
+    studentBreakdownMap[key].paidAmount += incomeAmount;
+    studentBreakdownMap[key].accrualAmount += incomeAmount; // Murni dari Buku Kas
     studentBreakdownMap[key].paymentCount += 1;
-    if (studentBreakdownMap[key].accrualAmount === 0 && studentBreakdownMap[key].sessions === 0) {
-      studentBreakdownMap[key].accrualAmount = studentBreakdownMap[key].paidAmount;
-    }
   });
 
   // Group by Level (Jenjang)
@@ -330,7 +308,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
       label: `Jenjang ${lvl}`,
       studentCount: matching.filter((m) => m.sessions > 0 || m.paidAmount > 0).length,
       sessionsCount: matching.reduce((sum, m) => sum + m.sessions, 0),
-      accrualAmount: matching.reduce((sum, m) => sum + m.accrualAmount, 0),
+      accrualAmount: matching.reduce((sum, m) => sum + m.paidAmount, 0),
       paidAmount: matching.reduce((sum, m) => sum + m.paidAmount, 0),
     };
   }).filter((b) => b.studentCount > 0 || b.accrualAmount > 0 || b.paidAmount > 0);
@@ -348,25 +326,34 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
       label: 'Kelas Privat (1-on-1)',
       studentCount: typePrivatMatching.filter((m) => m.sessions > 0 || m.paidAmount > 0).length,
       sessionsCount: typePrivatMatching.reduce((sum, m) => sum + m.sessions, 0),
-      accrualAmount: typePrivatMatching.reduce((sum, m) => sum + m.accrualAmount, 0),
+      accrualAmount: typePrivatMatching.reduce((sum, m) => sum + m.paidAmount, 0),
       paidAmount: typePrivatMatching.reduce((sum, m) => sum + m.paidAmount, 0),
     },
     {
       label: 'Kelas Grup / Reguler',
       studentCount: typeGrupMatching.filter((m) => m.sessions > 0 || m.paidAmount > 0).length,
       sessionsCount: typeGrupMatching.reduce((sum, m) => sum + m.sessions, 0),
-      accrualAmount: typeGrupMatching.reduce((sum, m) => sum + m.accrualAmount, 0),
+      accrualAmount: typeGrupMatching.reduce((sum, m) => sum + m.paidAmount, 0),
       paidAmount: typeGrupMatching.reduce((sum, m) => sum + m.paidAmount, 0),
     },
   ];
 
-  // Total Accrual & Realisasi SPP Les
+  // Total Realisasi SPP Les MURNI dari Buku Kas
   const totalSppPaid = totalSppPaidCashBook;
-  const totalSppAccrual = Math.max(
-    totalSppPaid,
-    Object.values(studentBreakdownMap).reduce((sum, s) => sum + s.accrualAmount, 0)
+  const totalSppAccrual = totalSppPaidCashBook; // Murni dari Buku Kas Masuk
+  const totalUncollectedSpp = 0; // Tidak ada piutang semu dari absensi
+
+  const totalNonSppIncome = regFeeIncome + moduleIncome + tryOutIncome + otherNonSppIncome;
+
+  // Total Pendapatan Operasional MURNI dari Buku Kas (SPP + Non-SPP)
+  const grandTotalMonthlyRevenueAccrual = totalSppPaidCashBook + totalNonSppIncome;
+  const totalMonthlyRevenue = grandTotalMonthlyRevenueAccrual;
+
+  // Kas Masuk Riil di Bulan ini (Semua kas masuk yang diterima di kasir pada tanggal bulan ini)
+  const incomesReceivedInMonth = incomes.filter(
+    (inc) => inc.datePaid && inc.datePaid.startsWith(targetMonthPrefix)
   );
-  const totalUncollectedSpp = Math.max(0, totalSppAccrual - totalSppPaid);
+  const totalCashIncomeMonth = incomesReceivedInMonth.reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
   // D. Rincian Pengeluaran Bulan Ini (Expense Breakdown)
   const expensesInMonth = expenses.filter((e) => e.date && e.date.startsWith(targetMonthPrefix));
@@ -496,8 +483,8 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
       // Detailed monthly export
       const monthlyRows = [
         { 'KOMPONEN LAPORAN': '=== RINGKASAN EKSEKUTIF P&L ===', 'NILAI (RP)': '', 'KETERANGAN': `${targetMonthName} ${selectedYear}` },
-        { 'KOMPONEN LAPORAN': '1. Total Pendapatan Accrual (Hak Layanan)', 'NILAI (RP)': grandTotalMonthlyRevenueAccrual, 'KETERANGAN': 'Pendapatan Les + Non-SPP' },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan Hak Jasa Les Siswa (Sesi Hadir)', 'NILAI (RP)': totalSppAccrual, 'KETERANGAN': `${totalSessionsCount} Sesi Hadir Siswa` },
+        { 'KOMPONEN LAPORAN': '1. Total Pendapatan Operasional (Buku Kas Masuk)', 'NILAI (RP)': grandTotalMonthlyRevenueAccrual, 'KETERANGAN': 'Pendapatan SPP + Non-SPP' },
+        { 'KOMPONEN LAPORAN': '   - Pendapatan SPP Siswa (Buku Kas)', 'NILAI (RP)': totalSppPaidCashBook, 'KETERANGAN': `${sppCashIncomesForMonth.length} Transaksi SPP (${totalSessionsCount} Sesi Hadir)` },
         { 'KOMPONEN LAPORAN': '   - Pendapatan Pendaftaran Siswa', 'NILAI (RP)': regFeeIncome, 'KETERANGAN': 'Registrasi Siswa Baru' },
         { 'KOMPONEN LAPORAN': '   - Pendapatan Modul & Buku Paket', 'NILAI (RP)': moduleIncome, 'KETERANGAN': 'Penjualan Modul' },
         { 'KOMPONEN LAPORAN': '   - Pendapatan Try Out & Ujian Simulasi', 'NILAI (RP)': tryOutIncome, 'KETERANGAN': 'Ujian Simulasi' },
@@ -511,15 +498,66 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         { 'KOMPONEN LAPORAN': '   - Beban Konsumsi / Pantry', 'NILAI (RP)': pantryExp, 'KETERANGAN': 'Konsumsi Tutor & Siswa' },
         { 'KOMPONEN LAPORAN': '   - Beban Promosi / Banner / Iklan', 'NILAI (RP)': promoExp, 'KETERANGAN': 'Pemasaran & Spanduk' },
         { 'KOMPONEN LAPORAN': '   - Beban Operasional Lain-lain', 'NILAI (RP)': otherExp, 'KETERANGAN': 'Pemeliharaan & Kebersihan' },
-        { 'KOMPONEN LAPORAN': '4. LABA BERSIH OPERASIONAL (ACCRUAL NET PROFIT)', 'NILAI (RP)': monthlyAccrualNetProfit, 'KETERANGAN': `Margin Profit: ${profitMarginPercent}%` },
+        { 'KOMPONEN LAPORAN': '4. LABA BERSIH OPERASIONAL (NET PROFIT)', 'NILAI (RP)': monthlyAccrualNetProfit, 'KETERANGAN': `Margin Profit: ${profitMarginPercent}%` },
         { 'KOMPONEN LAPORAN': '5. ARUS KAS BERSIH (NET CASH FLOW)', 'NILAI (RP)': monthlyCashNetFlow, 'KETERANGAN': 'Kas Masuk Riil - Pengeluaran' },
         { 'KOMPONEN LAPORAN': '6. Sisa Tagihan SPP Belum Tertagih (Piutang)', 'NILAI (RP)': totalUncollectedSpp, 'KETERANGAN': `Tingkat Pelunasan: ${collectionRate}%` },
       ];
 
-      exportToExcel(
-        monthlyRows,
-        `Laporan_P&L_Bulanan_Detail_${bimbelName.replace(/\s+/g, '_')}_${targetMonthName}_${selectedYear}`,
-        `P&L ${targetMonthName} ${selectedYear}`
+      // Sheet 2: Rincian SPP & Sesi per Siswa (Murni dari Buku Kas)
+      const studentRows = Object.values(studentBreakdownMap)
+        .filter((s) => s.sessions > 0 || s.paidAmount > 0)
+        .map((s, idx) => ({
+          'No': idx + 1,
+          'Kode Siswa': s.studentCode || '-',
+          'Nama Siswa': s.name,
+          'Jenjang': s.level,
+          'Tipe Kelas': s.classType,
+          'Sesi Hadir': s.sessions,
+          'Total SPP Terbayar Buku Kas (Rp)': s.paidAmount,
+          'Jumlah Transaksi Kas': s.paymentCount,
+          'Status': s.paidAmount > 0 ? 'Tercatat di Buku Kas' : 'Belum Ada Pembayaran',
+        }));
+
+      // Sheet 3: Rincian Gaji & Honor Tutor
+      const tutorRows = tutorSalaryBreakdown.map((t, idx) => ({
+        'No': idx + 1,
+        'Nama Tutor': t.tutorName,
+        'Bidang / Mata Pelajaran': t.specialty,
+        'Sesi Mengajar': t.sessionsTaught,
+        'Honor Dibayarkan (Rp)': t.amountPaid,
+      }));
+
+      // Sheet 4: Rincian Pengeluaran Kas Operasional
+      const expenseRows = expensesInMonth.map((e, idx) => ({
+        'No': idx + 1,
+        'Tanggal': e.date,
+        'Kategori': e.category,
+        'Keperluan / Deskripsi': e.description || e.title || '-',
+        'Nominal (Rp)': e.amount,
+        'Penerima': e.recipient || e.paidTo || '-',
+        'Metode': e.paymentMethod || '-',
+      }));
+
+      // Sheet 5: Rincian Kas Masuk Riil
+      const cashIncomeRows = incomesReceivedInMonth.map((i, idx) => ({
+        'No': idx + 1,
+        'No. Kwitansi': i.receiptNumber || '-',
+        'Tanggal Bayar': i.datePaid,
+        'Kategori': i.category || (i.incomeCategory === 'registration' ? 'Pendaftaran' : 'SPP'),
+        'Sumber / Siswa': i.studentName || i.sourceName || '-',
+        'Nominal (Rp)': i.amount,
+        'Metode': i.paymentMethod || '-',
+      }));
+
+      exportMultiSheetExcel(
+        [
+          { name: 'Ringkasan P&L', data: monthlyRows },
+          { name: 'Rincian Siswa & SPP', data: studentRows },
+          { name: 'Honor Gaji Tutor', data: tutorRows },
+          { name: 'Pengeluaran Kas', data: expenseRows },
+          { name: 'Kas Masuk Riil', data: cashIncomeRows },
+        ],
+        `Laporan_P&L_Bulanan_${bimbelName.replace(/\s+/g, '_')}_${targetMonthName}_${selectedYear}`
       );
     } else {
       // Annual 12-Month Export
@@ -551,10 +589,22 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         'Arus Kas Bersih (Rp)': totalAnnualCashNetFlow,
       });
 
-      exportToExcel(
-        annualRows,
-        `Laporan_P&L_Tahunan_12Bulan_${bimbelName.replace(/\s+/g, '_')}_Tahun_${selectedYear}`,
-        `Laba Rugi ${selectedYear}`
+      // Sheet 2: Ringkasan Beban Tahunan
+      const annualExpenseBreakdown = [
+        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Gaji & Honor Tutor', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.tutorSalaryExpense, 0) },
+        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Sewa Gedung / Fasilitas', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.rentExpense, 0) },
+        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Listrik, Air & Internet WiFi', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.utilityExpense, 0) },
+        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Modul, ATK & Fotokopi', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.moduleExpense, 0) },
+        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Operasional Lainnya', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.otherExpense, 0) },
+        { 'KATEGORI BEBAN OPERASIONAL': 'TOTAL SELURUH BEBAN OPERASIONAL', 'TOTAL SETAHUN (RP)': totalAnnualExpenses },
+      ];
+
+      exportMultiSheetExcel(
+        [
+          { name: `P&L 12 Bulan ${selectedYear}`, data: annualRows },
+          { name: 'Struktur Beban Tahunan', data: annualExpenseBreakdown },
+        ],
+        `Laporan_P&L_Tahunan_${bimbelName.replace(/\s+/g, '_')}_Tahun_${selectedYear}`
       );
     }
   };
@@ -840,9 +890,9 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm">1. Rincian Pendapatan Layanan (Revenue Breakdown)</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">1. Rincian Pendapatan Layanan (Buku Kas Masuk)</h4>
                   <p className="text-xs text-slate-500">
-                    Akumulasi nilai hak jasa les berdasarkan sesi hadir terlaksana dan penerimaan non-SPP bulan {targetMonthName} {selectedYear}
+                    Akumulasi penerimaan SPP siswa dan kas operasional yang tercatat di Buku Kas bulan {targetMonthName} {selectedYear}
                   </p>
                 </div>
               </div>
@@ -864,16 +914,15 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                       <tr>
                         <th className="py-2.5 px-3">Jenjang</th>
                         <th className="py-2.5 px-2 text-center">Siswa</th>
-                        <th className="py-2.5 px-2 text-center">Sesi</th>
-                        <th className="py-2.5 px-3 text-right">Hak Jasa Les</th>
-                        <th className="py-2.5 px-3 text-right">Terbayar</th>
+                        <th className="py-2.5 px-2 text-center">Sesi Hadir</th>
+                        <th className="py-2.5 px-3 text-right">Total SPP Buku Kas</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {levelBreakdown.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-4 text-center text-slate-400">
-                            Belum ada data presensi/tagihan pada bulan ini.
+                          <td colSpan={4} className="py-4 text-center text-slate-400">
+                            Belum ada transaksi pembayaran SPP di Buku Kas pada bulan ini.
                           </td>
                         </tr>
                       ) : (
@@ -882,10 +931,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                             <td className="py-2.5 px-3 font-semibold text-slate-800">{item.label}</td>
                             <td className="py-2.5 px-2 text-center font-mono">{item.studentCount}</td>
                             <td className="py-2.5 px-2 text-center font-mono">{item.sessionsCount}</td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                              {formatRupiah(item.accrualAmount)}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-semibold">
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">
                               {formatRupiah(item.paidAmount)}
                             </td>
                           </tr>

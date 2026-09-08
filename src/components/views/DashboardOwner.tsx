@@ -97,29 +97,12 @@ export const DashboardOwner: React.FC<DashboardOwnerProps> = ({
   const todayAttendance = attendance.filter((a) => a.date === today);
   const todayPresent = todayAttendance.filter((a) => a.status === 'Hadir').length;
 
-  // Monthly Lessons
+  // Monthly Lessons (Presensi Hadir)
   const monthAttendance = attendance.filter((a) => a.date && a.date.startsWith(currentMonthPrefix));
   const monthSessions = monthAttendance.filter((a) => a.status === 'Hadir').length;
 
-  // Estimated uncollected tuition (Total billable for active students this month minus paid accrual)
-  const totalBillableThisMonth = activeStudents.reduce((sum, std) => {
-    const stdMonthSessions = monthAttendance.filter((a) => a.studentId === std.id && a.status === 'Hadir').length;
-    return sum + stdMonthSessions * std.pricePerSession;
-  }, 0);
-
-  const accrualPaidThisMonth = incomes
-    .filter(
-      (i) =>
-        i.accrualMonth === currentMonth &&
-        i.accrualYear === currentYear &&
-        isSystemIncomeCategory(i.category, settings)
-    )
-    .reduce((sum, i) => sum + (i.amount || 0), 0);
-
-  const estimatedUncollected = Math.max(0, totalBillableThisMonth - accrualPaidThisMonth);
-
-  // 12-Month P&L Overview
-  const plData = calculateAnnualPL(currentYear, attendance, incomes, expenses);
+  // 12-Month P&L Overview (Murni dari Buku Kas Incomes & Expenses)
+  const plData = calculateAnnualPL(currentYear, attendance, incomes, expenses, settings, students);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">

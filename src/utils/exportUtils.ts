@@ -48,6 +48,51 @@ export const exportToExcel = (data: Record<string, any>[], fileName: string, she
 };
 
 /**
+ * Multi-Sheet Excel Exporter (.xlsx)
+ * Exports multiple structured datasets as distinct worksheets in a single Excel workbook.
+ */
+export const exportMultiSheetExcel = (
+  sheets: { name: string; data: Record<string, any>[] }[],
+  fileName: string
+): boolean => {
+  try {
+    const validSheets = sheets.filter((s) => s.data && s.data.length > 0);
+    if (validSheets.length === 0) {
+      alert('Tidak ada data yang tersedia untuk diekspor ke Excel.');
+      return false;
+    }
+
+    const workbook = XLSX.utils.book_new();
+
+    validSheets.forEach(({ name, data }) => {
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const colKeys = Object.keys(data[0] || {});
+      const colWidths = colKeys.map((key) => {
+        let maxLen = key.length;
+        data.forEach((row) => {
+          const valStr = row[key] !== undefined && row[key] !== null ? String(row[key]) : '';
+          if (valStr.length > maxLen) maxLen = valStr.length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 4, 12), 50) };
+      });
+      worksheet['!cols'] = colWidths;
+      // Sheet name in Excel is limited to 31 chars
+      const safeSheetName = name.replace(/[/\\?*:[\]]/g, '_').slice(0, 31);
+      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
+    });
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const cleanFileName = `${fileName.replace(/[/\\?%*:|"<>]/g, '_')}_${dateStamp}.xlsx`;
+    XLSX.writeFile(workbook, cleanFileName);
+    return true;
+  } catch (error) {
+    console.error('Gagal mengekspor file multi-sheet Excel:', error);
+    alert('Terjadi kesalahan saat membuat file Excel multi-sheet.');
+    return false;
+  }
+};
+
+/**
  * High-Resolution PNG Image Exporter
  * Renders any DOM element (e.g. Receipt, Salary Slip, Student Card) into a crisp PNG file.
  */

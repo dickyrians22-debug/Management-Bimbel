@@ -493,38 +493,69 @@ export function calculateStudentMonthlySummary(
 }
 
 // 12-Month Profit & Loss Comprehensive Calculator
+// Seluruh data pendapatan dan beban operasional diambil MURNI dari Buku Kas (incomes & expenses)
 export function calculateAnnualPL(
   year: number,
   allAttendance: AttendanceRecord[],
   allIncomes: IncomeRecord[],
   allExpenses: ExpenseRecord[],
-  settings?: BimbelSettings | null
+  settings?: BimbelSettings | null,
+  allStudents?: Student[]
 ): MonthlyPLSummary[] {
   const result: MonthlyPLSummary[] = [];
 
   for (let m = 1; m <= 12; m++) {
     const targetMonthStr = `${year}-${String(m).padStart(2, '0')}`;
 
-    // Accrual Income: SPP / Pendapatan untuk periode bulan m dari Buku Kas
-    const accrualIncome = allIncomes
+    // Presensi & Sesi MURNI hanya untuk statistik kehadiran (bukan dikalikan uang)
+    const monthAttendance = allAttendance.filter((a) => a.date && a.date.startsWith(targetMonthStr));
+    const sessionCount = monthAttendance.length;
+    const presentAttendances = monthAttendance.filter((a) => a.status === 'Hadir');
+    const presentCount = presentAttendances.length;
+
+    // SPP terbayar dari Buku Kas untuk periode bulan m
+    const sppPaidForMonth = allIncomes
       .filter((inc) => {
+        const isSpp =
+          inc.incomeCategory === 'spp_monthly' ||
+          inc.incomeCategory === 'session_pack' ||
+          isSystemIncomeCategory(inc.category || '', settings);
+        if (!isSpp) return false;
         const incYear = Number(inc.accrualYear);
         const incMonth = Number(inc.accrualMonth);
         const matchesAccrual = incYear === year && incMonth === m;
         const matchesDateFallback =
           (!inc.accrualMonth || incMonth === 0) &&
-          inc.datePaid &&
-          inc.datePaid.startsWith(targetMonthStr);
+          Boolean(inc.datePaid && inc.datePaid.startsWith(targetMonthStr));
         return matchesAccrual || matchesDateFallback;
       })
       .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-    // Cash Income: real cash received in month m
+    // Pendapatan Non-SPP dari Buku Kas (registrasi, modul, tryout, dll)
+    const nonSppIncomeForMonth = allIncomes
+      .filter((inc) => {
+        const isSpp =
+          inc.incomeCategory === 'spp_monthly' ||
+          inc.incomeCategory === 'session_pack' ||
+          isSystemIncomeCategory(inc.category || '', settings);
+        if (isSpp) return false;
+        const incYear = Number(inc.accrualYear);
+        const incMonth = Number(inc.accrualMonth);
+        const matchesAccrual = incYear === year && incMonth === m;
+        const matchesDate = Boolean(inc.datePaid && inc.datePaid.startsWith(targetMonthStr));
+        return matchesAccrual || matchesDate;
+      })
+      .reduce((sum, inc) => sum + (inc.amount || 0), 0);
+
+    // Seluruh pendapatan operasional MURNI dari Buku Kas
+    const accrualIncome = sppPaidForMonth + nonSppIncomeForMonth;
+
+    // Cash Income: real cash received in month m (Buku Kas Masuk)
     const cashIncome = allIncomes
       .filter((inc) => inc.datePaid && inc.datePaid.startsWith(targetMonthStr))
       .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-    // Monthly Expenses
+    // Monthly Expenses: MURNI dari Buku Kas Keluar
     const monthExpenses = allExpenses.filter((e) => e.date && e.date.startsWith(targetMonthStr));
     const totalExpenses = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
@@ -545,10 +576,6 @@ export function calculateAnnualPL(
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
     const otherExpense = totalExpenses - (tutorSalaryExpense + rentExpense + utilityExpense + moduleExpense);
-
-    const monthAttendance = allAttendance.filter((a) => a.date && a.date.startsWith(targetMonthStr));
-    const sessionCount = monthAttendance.length;
-    const presentCount = monthAttendance.filter((a) => a.status === 'Hadir').length;
 
     result.push({
       month: m,
