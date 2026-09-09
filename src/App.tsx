@@ -1860,6 +1860,7 @@ export default function App() {
               expenses={expenses}
               onAddExpense={handleSaveExpense}
               onNavigateToSettings={() => setCurrentTab('settings')}
+              onSaveSettings={handleSaveSettings}
             />
           )}
 

@@ -109,6 +109,24 @@ export interface BimbelSettings {
   flatGroupSessionRate?: number; // e.g. 75.000
   transportAllowancePerDay?: number; // e.g. 15.000 / hari mengajar
   evaluationBonusPerSession?: number; // e.g. 5.000 / sesi dengan topik lengkap
+
+  // Override Tarif & Persentase Gaji per Periode Bulan (Contoh key: "2026-09")
+  monthlySalaryOverrides?: Record<
+    string,
+    {
+      salaryCalculationMode?: 'percentage' | 'flat' | 'hybrid';
+      privatSalaryPercentage?: number;
+      groupSalaryPercentage?: number;
+      semiPrivatSalaryPercentage?: number;
+      minPrivatSessionRate?: number;
+      minGroupSessionRate?: number;
+      flatPrivatSessionRate?: number;
+      flatGroupSessionRate?: number;
+      transportAllowancePerDay?: number;
+      evaluationBonusPerSession?: number;
+      notes?: string;
+    }
+  >;
 }
 
 export type StudentLevel = 'PAUD' | 'SD' | 'SMP' | 'SMA' | 'UTBK';

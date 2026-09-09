@@ -30,6 +30,11 @@ import {
   FileSpreadsheet,
   X,
   Palette,
+  Settings as SettingsIcon,
+  Sliders,
+  RotateCcw,
+  Save,
+  Tag,
 } from 'lucide-react';
 import {
   TutorSalaryRecord,
@@ -67,6 +72,7 @@ interface SalaryViewProps {
   settings: BimbelSettings;
   onAddExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt'>) => void;
   onNavigateToSettings?: () => void;
+  onSaveSettings?: (updated: BimbelSettings) => void;
 }
 
 export const SalaryView: React.FC<SalaryViewProps> = ({
@@ -79,6 +85,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
   settings,
   onAddExpense,
   onNavigateToSettings,
+  onSaveSettings,
 }) => {
   const isOwner = currentUser.role === 'owner';
   const isTutor = currentUser.role === 'tutor';
@@ -96,6 +103,56 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
   const [payModalTutor, setPayModalTutor] = useState<TutorSalaryRecord | null>(null);
   const [isExportingSlipPng, setIsExportingSlipPng] = useState<boolean>(false);
   const slipPrintRef = useRef<HTMLDivElement>(null);
+
+  // Modal Khusus Penyesuaian Persentase/Skema Gaji Bulan Ini
+  const [isMonthRateModalOpen, setIsMonthRateModalOpen] = useState<boolean>(false);
+  const currentPeriodKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+  const currentPeriodOverride = settings.monthlySalaryOverrides?.[currentPeriodKey];
+
+  // State form khusus periode ini
+  const [overrideCalcMode, setOverrideCalcMode] = useState<'percentage' | 'flat' | 'hybrid'>(
+    currentPeriodOverride?.salaryCalculationMode || settings.salaryCalculationMode || 'percentage'
+  );
+  const [overridePrivatPct, setOverridePrivatPct] = useState<number>(
+    currentPeriodOverride?.privatSalaryPercentage ?? settings.privatSalaryPercentage ?? 60
+  );
+  const [overrideGroupPct, setOverrideGroupPct] = useState<number>(
+    currentPeriodOverride?.groupSalaryPercentage ?? settings.groupSalaryPercentage ?? 40
+  );
+  const [overrideFlatPrivat, setOverrideFlatPrivat] = useState<number>(
+    currentPeriodOverride?.flatPrivatSessionRate ?? settings.flatPrivatSessionRate ?? 65000
+  );
+  const [overrideFlatGroup, setOverrideFlatGroup] = useState<number>(
+    currentPeriodOverride?.flatGroupSessionRate ?? settings.flatGroupSessionRate ?? 80000
+  );
+  const [overrideTransport, setOverrideTransport] = useState<number>(
+    currentPeriodOverride?.transportAllowancePerDay ?? settings.transportAllowancePerDay ?? 15000
+  );
+  const [overrideNotes, setOverrideNotes] = useState<string>(
+    currentPeriodOverride?.notes || ''
+  );
+
+  // Sync state when selectedMonth or selectedYear changes
+  useEffect(() => {
+    const override = settings.monthlySalaryOverrides?.[currentPeriodKey];
+    if (override) {
+      setOverrideCalcMode(override.salaryCalculationMode || settings.salaryCalculationMode || 'percentage');
+      setOverridePrivatPct(override.privatSalaryPercentage ?? settings.privatSalaryPercentage ?? 60);
+      setOverrideGroupPct(override.groupSalaryPercentage ?? settings.groupSalaryPercentage ?? 40);
+      setOverrideFlatPrivat(override.flatPrivatSessionRate ?? settings.flatPrivatSessionRate ?? 65000);
+      setOverrideFlatGroup(override.flatGroupSessionRate ?? settings.flatGroupSessionRate ?? 80000);
+      setOverrideTransport(override.transportAllowancePerDay ?? settings.transportAllowancePerDay ?? 15000);
+      setOverrideNotes(override.notes || '');
+    } else {
+      setOverrideCalcMode(settings.salaryCalculationMode || 'percentage');
+      setOverridePrivatPct(settings.privatSalaryPercentage ?? 60);
+      setOverrideGroupPct(settings.groupSalaryPercentage ?? 40);
+      setOverrideFlatPrivat(settings.flatPrivatSessionRate ?? 65000);
+      setOverrideFlatGroup(settings.flatGroupSessionRate ?? 80000);
+      setOverrideTransport(settings.transportAllowancePerDay ?? 15000);
+      setOverrideNotes('');
+    }
+  }, [currentPeriodKey, settings]);
 
   // Payment form state
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
@@ -214,16 +271,62 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     setPayNotes(rem < record.netTotalSalary ? `Pelunasan Sisa Honor` : `Pembayaran Honor`);
   };
 
-  // Salary Formula & Percentages from settings
-  const calcMode = settings.salaryCalculationMode || 'percentage';
-  const privatPct = settings.privatSalaryPercentage ?? 60;
-  const groupPct = settings.groupSalaryPercentage ?? 40;
-  const minPrivatRate = settings.minPrivatSessionRate ?? 50000;
-  const minGroupRate = settings.minGroupSessionRate ?? 60000;
-  const flatPrivatRate = settings.flatPrivatSessionRate ?? 65000;
-  const flatGroupRate = settings.flatGroupSessionRate ?? 80000;
-  const transportPerDay = settings.transportAllowancePerDay ?? 15000;
-  const evalBonusPerSession = settings.evaluationBonusPerSession ?? 0;
+  // Simpan penyesuaian tarif/persentase khusus bulan terpilih
+  const handleSaveMonthlyOverride = () => {
+    if (!onSaveSettings) return;
+
+    const existingOverrides = settings.monthlySalaryOverrides || {};
+    const updatedOverrides = {
+      ...existingOverrides,
+      [currentPeriodKey]: {
+        salaryCalculationMode: overrideCalcMode,
+        privatSalaryPercentage: overridePrivatPct,
+        groupSalaryPercentage: overrideGroupPct,
+        flatPrivatSessionRate: overrideFlatPrivat,
+        flatGroupSessionRate: overrideFlatGroup,
+        transportAllowancePerDay: overrideTransport,
+        notes: overrideNotes.trim() || undefined,
+      },
+    };
+
+    onSaveSettings({
+      ...settings,
+      monthlySalaryOverrides: updatedOverrides,
+    });
+
+    setIsMonthRateModalOpen(false);
+    showToast(`✅ Ketentuan persentase honor periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} berhasil disimpan!`);
+  };
+
+  // Kembalikan tarif bulan ini ke Pengaturan Standar Bimbel
+  const handleResetMonthlyOverride = () => {
+    if (!onSaveSettings) return;
+    if (!confirm(`Kembalikan skema honor periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} ke pengaturan standar bimbel?`)) {
+      return;
+    }
+
+    const existingOverrides = { ...(settings.monthlySalaryOverrides || {}) };
+    delete existingOverrides[currentPeriodKey];
+
+    onSaveSettings({
+      ...settings,
+      monthlySalaryOverrides: existingOverrides,
+    });
+
+    setIsMonthRateModalOpen(false);
+    showToast(`🔄 Periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} kembali menggunakan standar umum bimbel.`);
+  };
+
+  // Salary Formula & Percentages from settings (prioritaskan override per periode bulan jika ada)
+  const calcMode = currentPeriodOverride?.salaryCalculationMode || settings.salaryCalculationMode || 'percentage';
+  const privatPct = currentPeriodOverride?.privatSalaryPercentage ?? settings.privatSalaryPercentage ?? 60;
+  const groupPct = currentPeriodOverride?.groupSalaryPercentage ?? settings.groupSalaryPercentage ?? 40;
+  const minPrivatRate = currentPeriodOverride?.minPrivatSessionRate ?? settings.minPrivatSessionRate ?? 50000;
+  const minGroupRate = currentPeriodOverride?.minGroupSessionRate ?? settings.minGroupSessionRate ?? 60000;
+  const flatPrivatRate = currentPeriodOverride?.flatPrivatSessionRate ?? settings.flatPrivatSessionRate ?? 65000;
+  const flatGroupRate = currentPeriodOverride?.flatGroupSessionRate ?? settings.flatGroupSessionRate ?? 80000;
+  const transportPerDay = currentPeriodOverride?.transportAllowancePerDay ?? settings.transportAllowancePerDay ?? 15000;
+  const evalBonusPerSession = currentPeriodOverride?.evaluationBonusPerSession ?? settings.evaluationBonusPerSession ?? 0;
 
   // Filter attendances for selected month & year
   const monthStr = String(selectedMonth).padStart(2, '0');
@@ -732,14 +835,34 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
             ))}
           </select>
 
+          {isOwner && onSaveSettings && (
+            <button
+              onClick={() => setIsMonthRateModalOpen(true)}
+              title="Sesuaikan Persentase & Tarif Khusus Periode Ini"
+              className={`px-3 py-2 ${
+                currentPeriodOverride
+                  ? 'bg-amber-400 text-slate-950 font-black ring-2 ring-amber-300'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold'
+              } rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-md whitespace-nowrap`}
+            >
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {currentPeriodOverride ? 'Skema Khusus Aktif' : 'Ubah Persentase Bulan Ini'}
+              </span>
+              {currentPeriodOverride && (
+                <span className="w-2 h-2 rounded-full bg-emerald-700 animate-pulse" />
+              )}
+            </button>
+          )}
+
           {isOwner && onNavigateToSettings && (
             <button
               onClick={onNavigateToSettings}
-              title="Ubah Rumus & Persentase Gaji di Pengaturan"
-              className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-md whitespace-nowrap"
+              title="Ubah Rumus Standar Gaji di Pengaturan Lembaga"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-200 hover:text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 border border-slate-700 whitespace-nowrap"
             >
-              <Calculator className="w-3.5 h-3.5 shrink-0" />
-              <span>Atur Rumus</span>
+              <Calculator className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+              <span>Standar Lembaga</span>
             </button>
           )}
 
@@ -760,6 +883,58 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
         <div className="p-3.5 sm:p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 text-xs font-bold shadow-lg animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Monthly Rate Override Active Alert Banner */}
+      {currentPeriodOverride && (
+        <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-sm">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-slate-900 uppercase tracking-wide">
+                  Ketentuan Khusus Periode {getMonthNameIndo(selectedMonth)} {selectedYear}
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold text-[10px]">
+                  Custom Skema Aktif
+                </span>
+              </div>
+              <p className="text-slate-600 mt-0.5">
+                Bagi hasil:{' '}
+                <strong className="text-indigo-700">{privatPct}% Privat</strong> &{' '}
+                <strong className="text-emerald-700">{groupPct}% Grup</strong>
+                {transportPerDay > 0 && (
+                  <span>
+                    {' '}• Uang transport: <strong>Rp {transportPerDay.toLocaleString('id-ID')}/hari</strong>
+                  </span>
+                )}
+                {currentPeriodOverride.notes && (
+                  <span className="text-slate-500 italic"> — &quot;{currentPeriodOverride.notes}&quot;</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {isOwner && onSaveSettings && (
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                onClick={() => setIsMonthRateModalOpen(true)}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition cursor-pointer text-xs"
+              >
+                Edit Skema
+              </button>
+              <button
+                onClick={handleResetMonthlyOverride}
+                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition cursor-pointer text-xs flex items-center gap-1"
+                title="Kembalikan ke standar bimbel"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2023,6 +2198,244 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
           </div>
         );
       })()}
+
+      {/* MODAL PENYESUAIAN PERSENTASE / TARIF KHUSUS BULAN INI */}
+      {isMonthRateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                    Ketentuan Honor Periode {getMonthNameIndo(selectedMonth)} {selectedYear}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Atur persentase & tarif khusus untuk bulan ini tanpa merubah bulan lain
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsMonthRateModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-5 text-xs text-slate-700">
+              {/* Info Banner */}
+              <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-900 leading-relaxed">
+                <p className="font-bold flex items-center gap-1.5 text-xs">
+                  <Tag className="w-4 h-4 text-indigo-600" />
+                  <span>Prinsip Perlindungan Rekap Riwayat:</span>
+                </p>
+                <p className="text-[11px] text-indigo-800 mt-1">
+                  Perubahan di sini <strong>hanya berlaku khusus periode {getMonthNameIndo(selectedMonth)} {selectedYear}</strong>. 
+                  Laporan bulan-bulan sebelumnya maupun bulan depan tetap aman dan tidak akan terpengaruh.
+                </p>
+              </div>
+
+              {/* Pilihan Metode Perhitungan */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Metode Perhitungan Gaji Bulan Ini:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOverrideCalcMode('percentage')}
+                    className={`p-3 rounded-xl border text-left font-bold transition cursor-pointer ${
+                      overrideCalcMode === 'percentage'
+                        ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 ring-2 ring-indigo-500/30'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                    }`}
+                  >
+                    <div className="font-bold text-xs">Bagi Hasil Persentase (%)</div>
+                    <div className="text-[10px] font-normal text-slate-500 mt-0.5">
+                      Dihitung dari tarif SPP per sesi murid
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOverrideCalcMode('flat')}
+                    className={`p-3 rounded-xl border text-left font-bold transition cursor-pointer ${
+                      overrideCalcMode === 'flat'
+                        ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 ring-2 ring-indigo-500/30'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                    }`}
+                  >
+                    <div className="font-bold text-xs">Tarif Flat per Sesi (Rp)</div>
+                    <div className="text-[10px] font-normal text-slate-500 mt-0.5">
+                      Nominal tetap tanpa memandang tarif SPP
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Kolom Persentase jika mode percentage */}
+              {overrideCalcMode === 'percentage' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Persentase Sesi Privat:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={overridePrivatPct}
+                        onChange={(e) => setOverridePrivatPct(Number(e.target.value))}
+                        className="w-full pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <span className="absolute right-3 top-2 font-bold text-slate-400">%</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Standar umum lembaga: {settings.privatSalaryPercentage ?? 60}%</p>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Persentase Sesi Grup / Reguler:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={overrideGroupPct}
+                        onChange={(e) => setOverrideGroupPct(Number(e.target.value))}
+                        className="w-full pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <span className="absolute right-3 top-2 font-bold text-slate-400">%</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Standar umum lembaga: {settings.groupSalaryPercentage ?? 40}%</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Kolom Tarif Flat jika mode flat */}
+              {overrideCalcMode === 'flat' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Tarif Flat Sesi Privat (Rp):
+                    </label>
+                    <input
+                      type="number"
+                      step={5000}
+                      value={overrideFlatPrivat}
+                      onChange={(e) => setOverrideFlatPrivat(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Standar: {formatRupiah(settings.flatPrivatSessionRate ?? 65000)}</p>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Tarif Flat Sesi Grup (Rp):
+                    </label>
+                    <input
+                      type="number"
+                      step={5000}
+                      value={overrideFlatGroup}
+                      onChange={(e) => setOverrideFlatGroup(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Standar: {formatRupiah(settings.flatGroupSessionRate ?? 80000)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Uang Transport Kehadiran Harian */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Uang Transport Harian (per hari unik mengajar):
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 font-bold text-slate-400">Rp</span>
+                  <input
+                    type="number"
+                    step={1000}
+                    value={overrideTransport}
+                    onChange={(e) => setOverrideTransport(Number(e.target.value))}
+                    className="w-full pl-10 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Standar lembaga: {formatRupiah(settings.transportAllowancePerDay ?? 15000)}/hari. (Isi 0 jika bulan ini tidak ada uang transport).
+                </p>
+              </div>
+
+              {/* Alasan / Catatan Penyesuaian */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Catatan Kebijakan Bulan Ini (Opsional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Penyesuaian persentase promo semester ganjil / bonus HUT bimbel"
+                  value={overrideNotes}
+                  onChange={(e) => setOverrideNotes(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Preview Ringkasan */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                <div className="font-bold text-amber-900 mb-1">Ringkasan Skema Bulan Ini:</div>
+                <div className="flex flex-wrap gap-2 text-[11px] text-amber-800">
+                  <span className="px-2 py-0.5 bg-amber-100 rounded-md font-medium">
+                    Privat: {overrideCalcMode === 'percentage' ? `${overridePrivatPct}% SPP` : formatRupiah(overrideFlatPrivat)}
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-100 rounded-md font-medium">
+                    Grup: {overrideCalcMode === 'percentage' ? `${overrideGroupPct}% SPP` : formatRupiah(overrideFlatGroup)}
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-100 rounded-md font-medium">
+                    Transport: {formatRupiah(overrideTransport)}/hari
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6 border-t border-slate-100 bg-slate-50 rounded-b-3xl flex items-center justify-between gap-2">
+              {currentPeriodOverride ? (
+                <button
+                  type="button"
+                  onClick={handleResetMonthlyOverride}
+                  className="px-3.5 py-2 text-rose-600 hover:bg-rose-50 font-bold rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Kembalikan ke Standar</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMonthRateModalOpen(false)}
+                  className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveMonthlyOverride}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Terapkan untuk Bulan Ini</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
