@@ -30,6 +30,8 @@ import {
   RotateCcw,
   FileSpreadsheet,
   Image as ImageIcon,
+  Percent,
+  Tag,
 } from 'lucide-react';
 import {
   Student,
@@ -67,6 +69,11 @@ interface StudentBillingViewProps {
     month: number;
     year: number;
     amount: number;
+    originalAmount?: number;
+    discountType?: 'percentage' | 'nominal';
+    discountValue?: number;
+    discountAmount?: number;
+    discountReason?: string;
     totalBill: number;
     remainingBill: number;
     sessionsCount: number;
@@ -111,6 +118,12 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentNotes, setPaymentNotes] = useState<string>('');
   const [autoOpenReceipt, setAutoOpenReceipt] = useState<boolean>(true);
+
+  // Discount in Fast Payment Modal
+  const [modalApplyDiscount, setModalApplyDiscount] = useState<boolean>(false);
+  const [modalDiscountType, setModalDiscountType] = useState<'percentage' | 'nominal'>('percentage');
+  const [modalDiscountValue, setModalDiscountValue] = useState<number | ''>('');
+  const [modalDiscountReason, setModalDiscountReason] = useState<string>('');
 
   // Session Detail Modal State
   const [detailModalStudent, setDetailModalStudent] = useState<{
@@ -176,14 +189,16 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
       });
 
       const paidAmount = studentIncomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
-      const remainingAmount = Math.max(0, totalBill - paidAmount);
+      const discountAmount = studentIncomes.reduce((sum, inc) => sum + (inc.discountAmount || 0), 0);
+      const settledAmount = paidAmount + discountAmount;
+      const remainingAmount = Math.max(0, totalBill - settledAmount);
 
       let status: 'Belum Bayar' | 'Sebagian' | 'Lunas' | 'Tanpa Tagihan' = 'Belum Bayar';
       if (totalBill === 0) {
         status = 'Tanpa Tagihan';
-      } else if (paidAmount >= totalBill) {
+      } else if (settledAmount >= totalBill) {
         status = 'Lunas';
-      } else if (paidAmount > 0) {
+      } else if (settledAmount > 0) {
         status = 'Sebagian';
       } else {
         status = 'Belum Bayar';
@@ -208,6 +223,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
         sessionTopics,
         totalBill,
         paidAmount,
+        discountAmount,
         remainingAmount,
         status,
         incomesList: studentIncomes,
@@ -379,11 +395,32 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
     sendWhatsAppDirect(item.parentPhone, message);
   };
 
+  // Modal Discount Calculation
+  const modalCalculatedDiscount = useMemo(() => {
+    if (!modalApplyDiscount || !paymentModalStudent) return 0;
+    const base = paymentModalStudent.remainingAmount;
+    const val = Number(modalDiscountValue) || 0;
+    if (val <= 0 || base <= 0) return 0;
+    if (modalDiscountType === 'percentage') {
+      return Math.min(base, Math.round((base * val) / 100));
+    } else {
+      return Math.min(base, val);
+    }
+  }, [modalApplyDiscount, paymentModalStudent, modalDiscountType, modalDiscountValue]);
+
+  const modalNetPayable = paymentModalStudent
+    ? Math.max(0, paymentModalStudent.remainingAmount - modalCalculatedDiscount)
+    : 0;
+
   // Open Payment Modal
   const handleOpenPaymentModal = (item: StudentBillingItem) => {
     setPaymentModalStudent(item);
     setPayAmountType('full');
     setCustomPayAmount(String(item.remainingAmount));
+    setModalApplyDiscount(false);
+    setModalDiscountType('percentage');
+    setModalDiscountValue('');
+    setModalDiscountReason('');
     setPaymentMethod('Transfer BCA');
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setPaymentNotes('');
@@ -398,28 +435,45 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
     const studentObj = students.find((s) => s.id === paymentModalStudent.studentId);
     if (!studentObj) return;
 
-    const payAmount = payAmountType === 'full' 
-      ? paymentModalStudent.remainingAmount 
-      : parseInt(customPayAmount.replace(/[^0-9]/g, '') || '0', 10);
+    const baseAmount = paymentModalStudent.remainingAmount;
+    const discountAmount = modalApplyDiscount ? modalCalculatedDiscount : 0;
+    const netPayable = Math.max(0, baseAmount - discountAmount);
 
-    if (payAmount <= 0) {
-      alert('Mohon masukkan nominal pembayaran yang valid.');
+    let payAmount = 0;
+    if (payAmountType === 'full') {
+      payAmount = netPayable;
+    } else {
+      const parsed = parseInt(customPayAmount.replace(/[^0-9]/g, '') || '0', 10);
+      payAmount = Math.min(parsed, netPayable);
+    }
+
+    if (payAmount <= 0 && discountAmount <= 0) {
+      alert('Mohon masukkan nominal pembayaran atau diskon yang valid.');
       return;
     }
 
-    const newRemaining = Math.max(0, paymentModalStudent.remainingAmount - payAmount);
+    const newRemaining = Math.max(0, netPayable - payAmount);
 
     onRecordPayment({
       student: studentObj,
       month: paymentModalStudent.month,
       year: paymentModalStudent.year,
       amount: payAmount,
+      ...(modalApplyDiscount && discountAmount > 0
+        ? {
+            originalAmount: baseAmount,
+            discountType: modalDiscountType,
+            discountValue: Number(modalDiscountValue) || 0,
+            discountAmount,
+            discountReason: modalDiscountReason.trim() || undefined,
+          }
+        : {}),
       totalBill: paymentModalStudent.totalBill,
       remainingBill: newRemaining,
       sessionsCount: paymentModalStudent.attendedSessionsCount,
       paymentMethod,
       datePaid: paymentDate,
-      notes: paymentNotes || (payAmountType === 'partial' ? `Cicilan SPP (${formatRupiah(payAmount)})` : `Pelunasan SPP ${getMonthNameIndo(paymentModalStudent.month)} ${paymentModalStudent.year}`),
+      notes: paymentNotes || (modalApplyDiscount ? `Pembayaran SPP (Diskon: ${modalDiscountReason || (modalDiscountType === 'percentage' ? `${modalDiscountValue}%` : formatRupiah(discountAmount))})` : (payAmountType === 'partial' ? `Cicilan SPP (${formatRupiah(payAmount)})` : `Pelunasan SPP ${getMonthNameIndo(paymentModalStudent.month)} ${paymentModalStudent.year}`)),
       autoOpenReceipt,
     });
 
@@ -883,6 +937,12 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                       {/* 6. Sudah Dibayar */}
                       <td className="py-3.5 px-4 text-right font-mono text-emerald-700 font-semibold">
                         {item.paidAmount > 0 ? formatRupiah(item.paidAmount) : <span className="text-slate-300">Rp 0</span>}
+                        {item.discountAmount && item.discountAmount > 0 ? (
+                          <div className="text-[10px] text-amber-700 flex items-center justify-end gap-1 mt-0.5" title={`Diskon / Keringanan: ${formatRupiah(item.discountAmount)}`}>
+                            <Tag className="w-2.5 h-2.5" />
+                            <span>Disc: {formatRupiah(item.discountAmount)}</span>
+                          </div>
+                        ) : null}
                       </td>
 
                       {/* 7. Sisa Kurang Bayar */}
@@ -1122,6 +1182,180 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                 </div>
               </div>
 
+              {/* Discount Section */}
+              <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="modalApplyDiscount" className="flex items-center gap-2 cursor-pointer font-bold text-amber-950">
+                    <input
+                      type="checkbox"
+                      id="modalApplyDiscount"
+                      checked={modalApplyDiscount}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setModalApplyDiscount(checked);
+                        if (!checked) {
+                          setModalDiscountValue('');
+                          setModalDiscountReason('');
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <Tag className="w-4 h-4 text-amber-600" />
+                    <span>Terapkan Keringanan / Diskon Khusus</span>
+                  </label>
+                  {modalApplyDiscount && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full">
+                      Diskon Aktif
+                    </span>
+                  )}
+                </div>
+
+                {modalApplyDiscount && (
+                  <div className="space-y-3 pt-1 border-t border-amber-200/70">
+                    {/* Method Switcher: Persentase vs Nominal */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setModalDiscountType('percentage')}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+                          modalDiscountType === 'percentage'
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                        }`}
+                      >
+                        <Percent className="w-3.5 h-3.5" />
+                        Persentase (%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalDiscountType('nominal')}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+                          modalDiscountType === 'nominal'
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                        }`}
+                      >
+                        <DollarSign className="w-3.5 h-3.5" />
+                        Potongan Nominal (Rp)
+                      </button>
+                    </div>
+
+                    {/* Discount Value Input & Presets */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="font-semibold text-slate-700">
+                          {modalDiscountType === 'percentage' ? 'Besar Diskon (%):' : 'Nominal Diskon (Rp):'}
+                        </label>
+                        {modalCalculatedDiscount > 0 && (
+                          <span className="text-amber-800 font-bold font-mono">
+                            Hemat {formatRupiah(modalCalculatedDiscount)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        {modalDiscountType === 'nominal' && (
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                        )}
+                        <input
+                          type="number"
+                          min={1}
+                          max={modalDiscountType === 'percentage' ? 100 : paymentModalStudent.remainingAmount}
+                          value={modalDiscountValue}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : Number(e.target.value);
+                            setModalDiscountValue(val);
+                          }}
+                          placeholder={modalDiscountType === 'percentage' ? 'Contoh: 20' : 'Contoh: 50000'}
+                          className={`w-full py-2 bg-white border border-amber-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 outline-hidden font-mono ${
+                            modalDiscountType === 'nominal' ? 'pl-10 pr-3' : 'px-3'
+                          }`}
+                        />
+                        {modalDiscountType === 'percentage' && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
+                        )}
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {modalDiscountType === 'percentage'
+                          ? [10, 15, 20, 25, 50].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setModalDiscountValue(pct)}
+                                className={`px-2 py-0.5 rounded-lg border text-[11px] font-medium transition ${
+                                  modalDiscountValue === pct
+                                    ? 'bg-amber-600 text-white border-amber-600'
+                                    : 'bg-white text-slate-600 border-amber-200 hover:bg-amber-100/50'
+                                }`}
+                              >
+                                {pct}%
+                              </button>
+                            ))
+                          : [25000, 50000, 75000, 100000].map((nom) => (
+                              <button
+                                key={nom}
+                                type="button"
+                                onClick={() => setModalDiscountValue(nom)}
+                                className={`px-2 py-0.5 rounded-lg border text-[11px] font-medium transition ${
+                                  modalDiscountValue === nom
+                                    ? 'bg-amber-600 text-white border-amber-600'
+                                    : 'bg-white text-slate-600 border-amber-200 hover:bg-amber-100/50'
+                                }`}
+                              >
+                                {formatRupiah(nom)}
+                              </button>
+                            ))}
+                      </div>
+                    </div>
+
+                    {/* Reason */}
+                    <div className="space-y-1">
+                      <label className="font-semibold text-slate-700">
+                        Alasan / Keterangan Diskon:
+                      </label>
+                      <input
+                        type="text"
+                        value={modalDiscountReason}
+                        onChange={(e) => setModalDiscountReason(e.target.value)}
+                        placeholder="Contoh: Diskon Saudara Kandung / Prestasi / Beasiswa"
+                        className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 outline-hidden"
+                      />
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {['Diskon Saudara Kandung', 'Beasiswa Prestasi', 'Promo Awal Semester', 'Keringanan Khusus'].map(
+                          (reason) => (
+                            <button
+                              key={reason}
+                              type="button"
+                              onClick={() => setModalDiscountReason(reason)}
+                              className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100/60 text-amber-900 hover:bg-amber-200 transition cursor-pointer"
+                            >
+                              + {reason}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Real-time Calculation Summary */}
+                    <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200 text-[11px] space-y-1">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Tagihan Sebelum Diskon:</span>
+                        <span className="font-mono">{formatRupiah(paymentModalStudent.remainingAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-rose-600 font-medium">
+                        <span>Potongan Diskon:</span>
+                        <span className="font-mono">-{formatRupiah(modalCalculatedDiscount)}</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-700 font-bold pt-1 border-t border-slate-100">
+                        <span>Total Wajib Bayar:</span>
+                        <span className="font-mono text-xs">{formatRupiah(modalNetPayable)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Payment Type Selection */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1.5">
@@ -1132,7 +1366,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                     type="button"
                     onClick={() => {
                       setPayAmountType('full');
-                      setCustomPayAmount(String(paymentModalStudent.remainingAmount));
+                      setCustomPayAmount(String(modalNetPayable));
                     }}
                     className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                       payAmountType === 'full'
@@ -1145,7 +1379,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     </div>
                     <div className="text-sm font-black font-mono mt-1 text-emerald-700">
-                      {formatRupiah(paymentModalStudent.remainingAmount)}
+                      {formatRupiah(modalNetPayable)}
                     </div>
                   </button>
 
@@ -1184,7 +1418,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                       type="number"
                       required
                       min={1000}
-                      max={paymentModalStudent.remainingAmount}
+                      max={modalNetPayable}
                       value={customPayAmount}
                       onChange={(e) => setCustomPayAmount(e.target.value)}
                       placeholder="Contoh: 50000"

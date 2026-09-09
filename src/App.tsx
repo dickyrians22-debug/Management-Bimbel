@@ -1099,6 +1099,11 @@ export default function App() {
     month: number;
     year: number;
     amount: number;
+    originalAmount?: number;
+    discountType?: 'percentage' | 'nominal';
+    discountValue?: number;
+    discountAmount?: number;
+    discountReason?: string;
     totalBill: number;
     remainingBill: number;
     sessionsCount: number;
@@ -1120,6 +1125,11 @@ export default function App() {
       studentCode: paymentData.student.code,
       studentName: paymentData.student.name,
       amount: paymentData.amount,
+      originalAmount: paymentData.originalAmount,
+      discountType: paymentData.discountType,
+      discountValue: paymentData.discountValue,
+      discountAmount: paymentData.discountAmount,
+      discountReason: paymentData.discountReason,
       totalBill: paymentData.totalBill,
       remainingBill: paymentData.remainingBill,
       paymentStatus: paymentData.remainingBill === 0 ? 'Lunas' : 'Cicilan',

@@ -199,6 +199,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 {income.paymentMethod}
               </span>
             </div>
+            {income.discountAmount && income.discountAmount > 0 ? (
+              <div className="flex justify-between py-1.5 border-b border-slate-100 text-amber-900 bg-amber-50/60 px-2 rounded-lg">
+                <span className="font-semibold w-44">Keringanan / Diskon:</span>
+                <span className="font-bold text-right flex-1 font-mono">
+                  -{formatRupiah(income.discountAmount)}
+                  {income.discountType === 'percentage' && income.discountValue ? ` (${income.discountValue}%)` : ''}
+                  {income.discountReason ? ` — ${income.discountReason}` : ''}
+                </span>
+              </div>
+            ) : null}
             {income.remainingBill && income.remainingBill > 0 ? (
               <div className="flex justify-between py-1.5 border-b border-slate-100 text-amber-700 bg-amber-50/50 px-2 rounded-lg">
                 <span className="font-semibold w-44">Status Pembayaran:</span>
@@ -226,6 +236,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   {formatRupiah(income.totalBill || (income.amount + income.remainingBill))}
                 </span>
               </div>
+              {income.discountAmount && income.discountAmount > 0 && (
+                <div className="flex items-center justify-between text-xs text-amber-800">
+                  <span className="font-semibold">Potongan Diskon:</span>
+                  <span className="font-bold font-mono text-sm">
+                    -{formatRupiah(income.discountAmount)}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between pt-1 border-t border-amber-200">
                 <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-800">
                   JUMLAH DITERIMA SAAT INI (CICILAN):
@@ -238,6 +256,31 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <span className="font-bold text-amber-900">SISA KURANG BAYAR:</span>
                 <span className="font-black text-sm text-amber-700 font-mono bg-white px-2 py-0.5 rounded border border-amber-300">
                   {formatRupiah(income.remainingBill)}
+                </span>
+              </div>
+            </div>
+          ) : income.discountAmount && income.discountAmount > 0 ? (
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-500/40 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-700">
+                <span className="font-semibold">Tarif Tagihan Normal:</span>
+                <span className="font-bold font-mono text-sm text-slate-500 line-through">
+                  {formatRupiah(income.originalAmount || (income.amount + income.discountAmount))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-amber-800">
+                <span className="font-semibold">
+                  Potongan Diskon {income.discountType === 'percentage' && income.discountValue ? `(${income.discountValue}%)` : ''}:
+                </span>
+                <span className="font-bold font-mono text-sm">
+                  -{formatRupiah(income.discountAmount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-800">
+                  TOTAL DITERIMA KAS (LUNAS):
+                </span>
+                <span className="text-2xl font-black text-emerald-700 font-mono">
+                  {formatRupiah(income.amount)}
                 </span>
               </div>
             </div>

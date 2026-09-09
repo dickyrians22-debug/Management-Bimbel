@@ -181,6 +181,11 @@ export interface IncomeRecord {
   sourceName?: string; // Nama pembayar/sumber dana (untuk kas masuk umum)
   category?: string; // e.g. "SPP Bulanan Siswa", "Paket Sesi", "Biaya Pendaftaran", etc.
   amount: number; // Jumlah yang dibayarkan sekarang (kas riil masuk)
+  originalAmount?: number; // Nominal tagihan normal/kotor sebelum diskon
+  discountType?: 'percentage' | 'nominal'; // Tipe diskon ('percentage' = %, 'nominal' = Rp)
+  discountValue?: number; // Angka diskon yang diinput (misal: 10 untuk 10%, atau 50000 untuk Rp 50.000)
+  discountAmount?: number; // Total potongan rupiah yang didapat
+  discountReason?: string; // Alasan/keterangan diskon (misal: "Promo Saudara Kandung", "Beasiswa Prestasi")
   totalBill?: number; // Total tagihan asli (jika cicilan)
   remainingBill?: number; // Sisa tagihan belum dibayar (jika cicilan)
   paymentStatus?: 'Lunas' | 'Cicilan';
@@ -299,6 +304,7 @@ export interface StudentBillingItem {
   sessionTopics: string[];
   totalBill: number;
   paidAmount: number;
+  discountAmount?: number;
   remainingAmount: number;
   status: 'Belum Bayar' | 'Sebagian' | 'Lunas' | 'Tanpa Tagihan';
   incomesList: IncomeRecord[];

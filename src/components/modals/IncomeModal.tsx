@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   DollarSign,
@@ -14,6 +14,7 @@ import {
   Receipt,
   CheckCircle2,
   AlertCircle,
+  Percent,
 } from 'lucide-react';
 import { IncomeRecord, Student, BimbelSettings, AttendanceRecord } from '../../types';
 import {
@@ -61,7 +62,7 @@ export function calculateStudentUnpaidBill(
   incomesList: IncomeRecord[] = [],
   bimbelSettings?: BimbelSettings | null,
   excludeIncomeId?: string
-): { totalBill: number; paidAmount: number; remainingBill: number; attendedCount: number; rate?: number } {
+): { totalBill: number; paidAmount: number; discountAmount?: number; remainingBill: number; attendedCount: number; rate?: number } {
   if (!std) return { totalBill: 0, paidAmount: 0, remainingBill: 0, attendedCount: 0, rate: 0 };
 
   // Hitung kehadiran bulan & tahun tersebut
@@ -104,10 +105,12 @@ export function calculateStudentUnpaidBill(
     return isMatchStudent && isMatchPeriod && isSppCategory;
   });
 
-  const paidAmount = studentIncomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
-  const remainingBill = Math.max(0, totalBill - paidAmount);
+  const cashPaid = studentIncomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
+  const totalDiscount = studentIncomes.reduce((sum, inc) => sum + (inc.discountAmount || 0), 0);
+  const settledAmount = cashPaid + totalDiscount;
+  const remainingBill = Math.max(0, totalBill - settledAmount);
 
-  return { totalBill, paidAmount, remainingBill, attendedCount, rate };
+  return { totalBill, paidAmount: cashPaid, discountAmount: totalDiscount, remainingBill, attendedCount, rate };
 }
 
 export const IncomeModal: React.FC<IncomeModalProps> = ({
@@ -141,6 +144,13 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
 
   const [isInstallment, setIsInstallment] = useState(false);
 
+  // Opsi Diskon Sewaktu-Waktu (Persentase % atau Nominal Rp)
+  const [applyDiscount, setApplyDiscount] = useState<boolean>(false);
+  const [discountType, setDiscountType] = useState<'percentage' | 'nominal'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number | ''>('');
+  const [discountReason, setDiscountReason] = useState<string>('');
+  const [baseAmount, setBaseAmount] = useState<number>(0);
+
   const [formData, setFormData] = useState({
     datePaid: getTodayDateString(),
     receiptNumber: '',
@@ -159,6 +169,18 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
   });
 
   const isSppCategory = isSystemIncomeCategory(formData.category, settings);
+
+  // Perhitungan diskon real-time
+  const calculatedDiscountAmount = useMemo(() => {
+    if (!applyDiscount) return 0;
+    const val = Number(discountValue) || 0;
+    if (val <= 0 || baseAmount <= 0) return 0;
+    if (discountType === 'percentage') {
+      return Math.min(baseAmount, Math.round((baseAmount * val) / 100));
+    } else {
+      return Math.min(baseAmount, val);
+    }
+  }, [applyDiscount, discountType, discountValue, baseAmount]);
 
   // Perhitungan sisa tagihan untuk siswa yang sedang dipilih
   const selectedStudent = students.find((s) => s.id === formData.studentId);
@@ -179,6 +201,14 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
       const isInitialInstallment =
         (initialData.remainingBill || 0) > 0 || initialData.paymentStatus === 'Cicilan';
       setIsInstallment(isInitialInstallment);
+
+      const hasDisc = Boolean(initialData.discountAmount && initialData.discountAmount > 0);
+      setApplyDiscount(hasDisc);
+      setDiscountType(initialData.discountType || 'nominal');
+      setDiscountValue(initialData.discountValue || initialData.discountAmount || '');
+      setDiscountReason(initialData.discountReason || '');
+      const original = initialData.originalAmount || (initialData.amount + (initialData.discountAmount || 0));
+      setBaseAmount(original);
 
       setFormData({
         datePaid: initialData.datePaid || getTodayDateString(),
@@ -225,6 +255,12 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
         : `Penerimaan ${defaultCategory}`;
 
       setIsInstallment(false);
+      setApplyDiscount(false);
+      setDiscountType('percentage');
+      setDiscountValue('');
+      setDiscountReason('');
+      setBaseAmount(defaultAmount);
+
       setFormData({
         datePaid: todayStr,
         receiptNumber: autoReceiptNum,
@@ -280,6 +316,14 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
         ? `Pembayaran SPP Periode ${monthName} ${formData.accrualYear} - ${std.name}`
         : `Pembayaran SPP Periode ${monthName} ${formData.accrualYear}`;
 
+      setBaseAmount(autoAmount);
+      const disc = applyDiscount
+        ? discountType === 'percentage'
+          ? Math.min(autoAmount, Math.round((autoAmount * (Number(discountValue) || 0)) / 100))
+          : Math.min(autoAmount, Number(discountValue) || 0)
+        : 0;
+      const net = Math.max(0, autoAmount - disc);
+
       setFormData((prev) => ({
         ...prev,
         category: newCat,
@@ -287,11 +331,12 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
         studentName: std ? std.name : '',
         sourceName: std ? std.name : prev.sourceName,
         description: autoDesc,
-        amount: autoAmount,
-        totalBill: autoAmount,
+        amount: net,
+        totalBill: net,
       }));
     } else {
       // Non-SPP (Registration fee, modul, try out, event, etc) -> nominal starts at 0 to prevent distraction
+      setBaseAmount(0);
       setFormData((prev) => ({
         ...prev,
         category: newCat,
@@ -321,16 +366,25 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
       const autoAmount = billInfo.remainingBill;
       const autoDesc = `Pembayaran SPP Periode ${monthName} ${formData.accrualYear} - ${selected.name}`;
 
+      setBaseAmount(autoAmount);
+      const disc = applyDiscount
+        ? discountType === 'percentage'
+          ? Math.min(autoAmount, Math.round((autoAmount * (Number(discountValue) || 0)) / 100))
+          : Math.min(autoAmount, Number(discountValue) || 0)
+        : 0;
+      const net = Math.max(0, autoAmount - disc);
+
       setFormData((prev) => ({
         ...prev,
         studentId: selected.id,
         studentName: selected.name,
         sourceName: selected.name,
         description: autoDesc,
-        amount: autoAmount,
-        totalBill: autoAmount,
+        amount: net,
+        totalBill: net,
       }));
     } else {
+      setBaseAmount(0);
       setFormData((prev) => ({
         ...prev,
         studentId: '',
@@ -362,13 +416,21 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
       autoAmount = billInfo.remainingBill;
     }
 
+    setBaseAmount(autoAmount);
+    const disc = applyDiscount
+      ? discountType === 'percentage'
+        ? Math.min(autoAmount, Math.round((autoAmount * (Number(discountValue) || 0)) / 100))
+        : Math.min(autoAmount, Number(discountValue) || 0)
+      : 0;
+    const net = Math.max(0, autoAmount - disc);
+
     setFormData((prev) => ({
       ...prev,
       accrualMonth: newMonth,
       accrualYear: newYear,
       description: isSppCategory ? autoDesc : prev.description,
-      amount: isSppCategory ? autoAmount : prev.amount,
-      totalBill: isSppCategory ? autoAmount : prev.totalBill,
+      amount: isSppCategory ? net : prev.amount,
+      totalBill: isSppCategory ? net : prev.totalBill,
     }));
   };
 
@@ -394,6 +456,15 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
       receiptNumber: formData.receiptNumber.trim() || generateIncomeReceiptNumber(existingIncomes, formData.datePaid),
       category: formData.category,
       amount: Number(formData.amount),
+      ...(applyDiscount && calculatedDiscountAmount > 0
+        ? {
+            originalAmount: baseAmount,
+            discountType,
+            discountValue: Number(discountValue) || 0,
+            discountAmount: calculatedDiscountAmount,
+            discountReason: discountReason.trim() || undefined,
+          }
+        : {}),
       totalBill: effectiveTotalBill,
       remainingBill: effectiveRemaining,
       paymentStatus,
@@ -655,10 +726,11 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                  Nominal Kas Masuk (Rp) <span className="text-rose-500">*</span>
+                  {applyDiscount ? 'Tagihan Normal / Sebelum Diskon (Rp)' : 'Nominal Kas Masuk (Rp)'}{' '}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <span className="text-xs font-black text-emerald-700 font-mono">
-                  {formatRupiah(formData.amount || 0)}
+                  {formatRupiah(applyDiscount ? baseAmount : (formData.amount || 0))}
                 </span>
               </div>
               <input
@@ -667,15 +739,29 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
                 step="any"
                 required
                 placeholder="0"
-                value={formData.amount === 0 ? '' : formData.amount}
+                value={(applyDiscount ? baseAmount : formData.amount) === 0 ? '' : (applyDiscount ? baseAmount : formData.amount)}
                 onChange={(e) => {
                   const val = e.target.value === '' ? 0 : Number(e.target.value);
                   const num = isNaN(val) ? 0 : val;
-                  setFormData({
-                    ...formData,
-                    amount: num,
-                    totalBill: isInstallment ? formData.totalBill : num,
-                  });
+                  setBaseAmount(num);
+                  if (applyDiscount) {
+                    const dVal = Number(discountValue) || 0;
+                    const disc = discountType === 'percentage'
+                      ? Math.min(num, Math.round((num * dVal) / 100))
+                      : Math.min(num, dVal);
+                    const net = Math.max(0, num - disc);
+                    setFormData({
+                      ...formData,
+                      amount: net,
+                      totalBill: isInstallment ? formData.totalBill : net,
+                    });
+                  } else {
+                    setFormData({
+                      ...formData,
+                      amount: num,
+                      totalBill: isInstallment ? formData.totalBill : num,
+                    });
+                  }
                 }}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-emerald-700 font-extrabold text-base focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
               />
@@ -685,16 +771,29 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
                   <button
                     key={delta}
                     type="button"
-                    onClick={() =>
-                      setFormData((prev) => {
-                        const newAmt = (prev.amount || 0) + delta;
-                        return {
+                    onClick={() => {
+                      const currentBase = applyDiscount ? baseAmount : (formData.amount || 0);
+                      const newBase = currentBase + delta;
+                      setBaseAmount(newBase);
+                      if (applyDiscount) {
+                        const dVal = Number(discountValue) || 0;
+                        const disc = discountType === 'percentage'
+                          ? Math.min(newBase, Math.round((newBase * dVal) / 100))
+                          : Math.min(newBase, dVal);
+                        const net = Math.max(0, newBase - disc);
+                        setFormData((prev) => ({
                           ...prev,
-                          amount: newAmt,
-                          totalBill: isInstallment ? prev.totalBill : newAmt,
-                        };
-                      })
-                    }
+                          amount: net,
+                          totalBill: isInstallment ? prev.totalBill : net,
+                        }));
+                      } else {
+                        setFormData((prev) => ({
+                          ...prev,
+                          amount: newBase,
+                          totalBill: isInstallment ? prev.totalBill : newBase,
+                        }));
+                      }
+                    }}
                     className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold transition cursor-pointer"
                   >
                     +{delta >= 1000 ? `${delta / 1000}rb` : delta}
@@ -719,6 +818,273 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* OPSI DISKON SEWAKTU-WAKTU (PERSENTASE % ATAU NOMINAL RP) */}
+          <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl transition">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={applyDiscount}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setApplyDiscount(checked);
+                    if (!checked) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        amount: baseAmount,
+                        totalBill: isInstallment ? prev.totalBill : baseAmount,
+                      }));
+                    } else {
+                      const val = Number(discountValue) || 0;
+                      const disc = val > 0
+                        ? (discountType === 'percentage' ? Math.min(baseAmount, Math.round((baseAmount * val) / 100)) : Math.min(baseAmount, val))
+                        : 0;
+                      const net = Math.max(0, baseAmount - disc);
+                      setFormData((prev) => ({
+                        ...prev,
+                        amount: net,
+                        totalBill: isInstallment ? prev.totalBill : net,
+                      }));
+                    }
+                  }}
+                  className="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                  Terapkan Diskon / Potongan Biaya (Bisa Kapan Saja)
+                </span>
+              </label>
+              {applyDiscount && (
+                <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                  Fleksibel Sewaktu-waktu
+                </span>
+              )}
+            </div>
+
+            {applyDiscount && (
+              <div className="mt-3 pt-3 border-t border-indigo-200/80 space-y-3 animate-in fade-in">
+                {/* Switcher: Persentase (%) vs Nominal (Rp) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider">
+                      Metode Diskon:
+                    </span>
+                    <span className="text-[11px] text-indigo-600">
+                      {discountType === 'percentage'
+                        ? 'Potongan berbasis % dari nilai tagihan'
+                        : 'Potongan langsung nominal Rupiah'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscountType('percentage');
+                        const val = Number(discountValue) || 0;
+                        const disc = val > 0 ? Math.min(baseAmount, Math.round((baseAmount * val) / 100)) : 0;
+                        const net = Math.max(0, baseAmount - disc);
+                        setFormData((prev) => ({
+                          ...prev,
+                          amount: net,
+                          totalBill: isInstallment ? prev.totalBill : net,
+                        }));
+                      }}
+                      className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                        discountType === 'percentage'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-white text-slate-700 border border-indigo-200 hover:bg-indigo-100/50'
+                      }`}
+                    >
+                      <Percent className="w-3.5 h-3.5" />
+                      Persentase (%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscountType('nominal');
+                        const val = Number(discountValue) || 0;
+                        const disc = val > 0 ? Math.min(baseAmount, val) : 0;
+                        const net = Math.max(0, baseAmount - disc);
+                        setFormData((prev) => ({
+                          ...prev,
+                          amount: net,
+                          totalBill: isInstallment ? prev.totalBill : net,
+                        }));
+                      }}
+                      className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                        discountType === 'nominal'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-white text-slate-700 border border-indigo-200 hover:bg-indigo-100/50'
+                      }`}
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      Nominal Potongan (Rp)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Input Nilai Diskon */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      {discountType === 'percentage' ? 'Besar Persentase (%):' : 'Besar Potongan (Rp):'}
+                    </label>
+                    <div className="relative">
+                      {discountType === 'nominal' && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                          Rp
+                        </span>
+                      )}
+                      <input
+                        type="number"
+                        min="0"
+                        max={discountType === 'percentage' ? 100 : baseAmount}
+                        placeholder={discountType === 'percentage' ? 'Misal: 10' : 'Misal: 50000'}
+                        value={discountValue}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value);
+                          setDiscountValue(val);
+                          const numVal = Number(val) || 0;
+                          const disc = discountType === 'percentage'
+                            ? Math.min(baseAmount, Math.round((baseAmount * numVal) / 100))
+                            : Math.min(baseAmount, numVal);
+                          const net = Math.max(0, baseAmount - disc);
+                          setFormData((prev) => ({
+                            ...prev,
+                            amount: net,
+                            totalBill: isInstallment ? prev.totalBill : net,
+                          }));
+                        }}
+                        className={`w-full py-2 bg-white border border-indigo-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono ${
+                          discountType === 'nominal' ? 'pl-9 pr-3' : 'px-3'
+                        }`}
+                      />
+                      {discountType === 'percentage' && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                          %
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Alasan / Keterangan Diskon:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Misal: Saudara Kandung / Promo Awal"
+                      value={discountReason}
+                      onChange={(e) => setDiscountReason(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-indigo-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Preset Cepat Diskon */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 block mb-1">Pilihan Cepat Diskon:</span>
+                  {discountType === 'percentage' ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {[5, 10, 15, 20, 25, 50].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setDiscountValue(pct);
+                            const disc = Math.min(baseAmount, Math.round((baseAmount * pct) / 100));
+                            const net = Math.max(0, baseAmount - disc);
+                            setFormData((prev) => ({
+                              ...prev,
+                              amount: net,
+                              totalBill: isInstallment ? prev.totalBill : net,
+                            }));
+                          }}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition cursor-pointer ${
+                            discountValue === pct
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100/60'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {[10000, 25000, 50000, 100000, 150000].map((nom) => (
+                        <button
+                          key={nom}
+                          type="button"
+                          onClick={() => {
+                            setDiscountValue(nom);
+                            const disc = Math.min(baseAmount, nom);
+                            const net = Math.max(0, baseAmount - disc);
+                            setFormData((prev) => ({
+                              ...prev,
+                              amount: net,
+                              totalBill: isInstallment ? prev.totalBill : net,
+                            }));
+                          }}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition cursor-pointer ${
+                            discountValue === nom
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100/60'
+                          }`}
+                        >
+                          {formatRupiah(nom)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Template Alasan Cepat */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold text-slate-500">Pilihan Alasan:</span>
+                  {[
+                    'Diskon Saudara Kandung',
+                    'Promo Pendaftaran',
+                    'Beasiswa Prestasi',
+                    'Keringanan Khusus',
+                    'Pelunasan Cepat',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDiscountReason(preset)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Realtime Calculation Card */}
+                <div className="p-3 bg-white rounded-xl border border-indigo-200 text-xs space-y-1.5 shadow-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Tagihan Normal (Sebelum Diskon):</span>
+                    <span className="font-mono font-bold text-slate-800">{formatRupiah(baseAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-indigo-700 font-semibold">
+                    <span>
+                      Potongan Diskon {discountType === 'percentage' ? `(${discountValue || 0}%)` : ''}:
+                    </span>
+                    <span className="font-mono font-bold text-indigo-800">
+                      - {formatRupiah(calculatedDiscountAmount)}
+                    </span>
+                  </div>
+                  <div className="pt-1.5 border-t border-indigo-100 flex justify-between items-center text-emerald-800">
+                    <span className="font-bold">Total Masuk Kas Riil (Setelah Diskon):</span>
+                    <span className="font-mono font-black text-sm text-emerald-700">
+                      {formatRupiah(formData.amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Opsi Cicilan / Pembayaran Sebagian */}
