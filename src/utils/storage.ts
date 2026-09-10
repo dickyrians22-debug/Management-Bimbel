@@ -555,27 +555,51 @@ export function calculateAnnualPL(
       .filter((inc) => inc.datePaid && inc.datePaid.startsWith(targetMonthStr))
       .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-    // Monthly Expenses: MURNI dari Buku Kas Keluar
-    const monthExpenses = allExpenses.filter((e) => e.date && e.date.startsWith(targetMonthStr));
-    const totalExpenses = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    // Monthly Expenses: Beban Operasional Umum berdasarkan tanggal kas, sedangkan Honor Tutor berdasarkan periode hak mengajar (Accrual Basis)
+    const generalExpensesInMonth = allExpenses.filter((e) => {
+      const isSalary = isSystemExpenseCategory(e.category, settings);
+      if (isSalary) return false;
+      return Boolean(e.date && e.date.startsWith(targetMonthStr));
+    });
 
-    const tutorSalaryExpense = monthExpenses
-      .filter((e) => isSystemExpenseCategory(e.category, settings))
+    // 1. Beban Gaji / Honor Tutor (Accrual Basis: diakui pada periode bulan mengajar)
+    const tutorSalaryExpense = allExpenses
+      .filter((e) => {
+        const isSalary = isSystemExpenseCategory(e.category, settings);
+        if (!isSalary) return false;
+
+        const expMonth = Number(e.periodMonth);
+        const expYear = Number(e.periodYear);
+
+        // Prioritas 1: Cocok dengan periode hak kerja (periodMonth & periodYear)
+        const matchesPeriod = expMonth === m && expYear === year;
+
+        // Prioritas 2: Fallback jika periodMonth belum terisi, gunakan tanggal transaksi kas
+        const matchesDateFallback =
+          (!expMonth || expMonth === 0) &&
+          Boolean(e.date && e.date.startsWith(targetMonthStr));
+
+        return matchesPeriod || matchesDateFallback;
+      })
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    const rentExpense = monthExpenses
+    const rentExpense = generalExpensesInMonth
       .filter((e) => (e.category || '').toLowerCase().includes('sewa') || (e.category || '').toLowerCase().includes('gedung'))
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    const utilityExpense = monthExpenses
+    const utilityExpense = generalExpensesInMonth
       .filter((e) => (e.category || '').toLowerCase().includes('listrik') || (e.category || '').toLowerCase().includes('internet') || (e.category || '').toLowerCase().includes('air'))
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    const moduleExpense = monthExpenses
+    const moduleExpense = generalExpensesInMonth
       .filter((e) => (e.category || '').toLowerCase().includes('modul') || (e.category || '').toLowerCase().includes('atk') || (e.category || '').toLowerCase().includes('cetak'))
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    const otherExpense = totalExpenses - (tutorSalaryExpense + rentExpense + utilityExpense + moduleExpense);
+    const generalNonSalaryExpense = generalExpensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const otherExpense = Math.max(0, generalNonSalaryExpense - (rentExpense + utilityExpense + moduleExpense));
+
+    // Total Beban P&L (Accrual Basis: Beban Honor Periode Ini + Beban Operasional Umum)
+    const totalExpenses = tutorSalaryExpense + generalNonSalaryExpense;
 
     result.push({
       month: m,

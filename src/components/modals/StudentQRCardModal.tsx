@@ -65,8 +65,8 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200 print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 flex flex-col overflow-hidden print:border-none print:shadow-none print:my-0 print:max-w-full">
         {/* Header (Hidden on print) */}
         <div className="no-print p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">

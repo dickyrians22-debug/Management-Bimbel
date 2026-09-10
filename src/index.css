@@ -27,6 +27,34 @@
     display: none !important;
   }
 
+  /* Ensure modal backdrops and overlay containers are completely transparent and unconstrained in print */
+  .fixed.inset-0,
+  div[class*="backdrop-blur"],
+  div[class*="bg-slate-950/"],
+  div[class*="bg-slate-900/"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure print document containers and printable cards have pure white background and no dark outer shadows/borders */
+  #receipt-modal-container,
+  #registration-receipt-modal-card,
+  #printable-registration-receipt,
+  #receipt-printable-content,
+  #printable-salary-slip,
+  #printable-student-qr-card,
+  #printable-pl-statement {
+    background-color: white !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
   .print-only {
     display: block !important;
   }
@@ -34,7 +62,9 @@
   /* Mode A & Mode B full A4 sheets & Registration Receipt */
   #printable-report-mode-a,
   #printable-group-sheet,
-  #printable-registration-receipt {
+  #printable-registration-receipt,
+  #printable-salary-slip,
+  #printable-pl-statement {
     width: 100% !important;
     max-width: 100% !important;
     min-height: auto !important;

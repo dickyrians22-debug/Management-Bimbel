@@ -356,16 +356,41 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   const totalCashIncomeMonth = incomesReceivedInMonth.reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
   // D. Rincian Pengeluaran Bulan Ini (Expense Breakdown)
-  const expensesInMonth = expenses.filter((e) => e.date && e.date.startsWith(targetMonthPrefix));
-  const totalMonthlyExpenses = expensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // Beban Operasional Umum berdasarkan tanggal kas keluar pada bulan terpilih
+  const generalExpensesInMonth = expenses.filter((e) => {
+    const isSalary = isSystemExpenseCategory(e.category, settings);
+    if (isSalary) return false;
+    return Boolean(e.date && e.date.startsWith(targetMonthPrefix));
+  });
 
-  // 1. Beban Pokok Pengajaran (Gaji / Honor Tutor)
-  const salaryExpenses = expensesInMonth.filter((e) =>
-    isSystemExpenseCategory(e.category, settings)
-  );
-  const totalSalaryExpense = salaryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // 1. Beban Pokok Pengajaran (Gaji / Honor Tutor) - Menggunakan Accrual Basis (Matching Principle)
+  // Beban diakui pada periode bulan hak mengajar (periodMonth & periodYear), bukan bulan saat kas dicairkan.
+  // Misal: Honor sesi mengajar bulan Juli yang baru dicairkan di bulan September tetap masuk ke beban P&L bulan Juli!
+  const salaryExpensesForMonth = expenses.filter((e) => {
+    const isSalary = isSystemExpenseCategory(e.category, settings);
+    if (!isSalary) return false;
 
-  // Breakdown per Tutor
+    const expMonth = Number(e.periodMonth);
+    const expYear = Number(e.periodYear);
+
+    // Prioritas 1: Cocok dengan periode hak kerja (periodMonth & periodYear)
+    const matchesPeriod = expMonth === selectedMonth && expYear === selectedYear;
+
+    // Prioritas 2: Fallback jika periodMonth belum diatur, gunakan tanggal transaksi kas
+    const matchesDateFallback =
+      (!expMonth || expMonth === 0) &&
+      Boolean(e.date && e.date.startsWith(targetMonthPrefix));
+
+    return matchesPeriod || matchesDateFallback;
+  });
+
+  const totalSalaryExpense = salaryExpensesForMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  // Beban Kas Keluar Riil di Bulan Ini (untuk perhitungan Arus Kas Bersih / Cash Flow)
+  const cashExpensesInMonth = expenses.filter((e) => e.date && e.date.startsWith(targetMonthPrefix));
+  const totalCashExpensesInMonth = cashExpensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  // Breakdown per Tutor untuk Periode Bulan Terpilih (Accrual Basis)
   const activeTutors = users.filter((u) => u.role === 'tutor');
   const tutorSalaryBreakdown = activeTutors.map((tutor) => {
     const tutorResolvedName = tutor.name;
@@ -373,7 +398,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
       (a) => resolveTutorName(a.tutorName, users).toLowerCase() === tutorResolvedName.toLowerCase()
     ).length;
 
-    const tutorPaidList = salaryExpenses.filter(
+    const tutorPaidList = salaryExpensesForMonth.filter(
       (e) =>
         resolveTutorName(e.tutorName || e.paidTo || e.recipient, users).toLowerCase() ===
         tutorResolvedName.toLowerCase()
@@ -389,7 +414,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   }).filter((t) => t.sessionsTaught > 0 || t.amountPaid > 0);
 
   // 2. Beban Fasilitas & Utilitas
-  const rentExpense = expensesInMonth
+  const rentExpense = generalExpensesInMonth
     .filter(
       (e) =>
         (e.category || '').toLowerCase().includes('sewa') ||
@@ -397,7 +422,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     )
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  const utilityExpense = expensesInMonth
+  const utilityExpense = generalExpensesInMonth
     .filter(
       (e) =>
         (e.category || '').toLowerCase().includes('listrik') ||
@@ -408,7 +433,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
   // 3. Beban Pembelajaran & Operasional Kelas
-  const moduleExp = expensesInMonth
+  const moduleExp = generalExpensesInMonth
     .filter(
       (e) =>
         (e.category || '').toLowerCase().includes('modul') ||
@@ -418,7 +443,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     )
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  const pantryExp = expensesInMonth
+  const pantryExp = generalExpensesInMonth
     .filter(
       (e) =>
         (e.category || '').toLowerCase().includes('konsumsi') ||
@@ -428,7 +453,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
   // 4. Beban Pemasaran & Operasional Lainnya
-  const promoExp = expensesInMonth
+  const promoExp = generalExpensesInMonth
     .filter(
       (e) =>
         (e.category || '').toLowerCase().includes('iklan') ||
@@ -438,15 +463,18 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     )
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
+  const generalNonSalaryExpense = generalExpensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
   const otherExp = Math.max(
     0,
-    totalMonthlyExpenses -
-      (totalSalaryExpense + rentExpense + utilityExpense + moduleExp + pantryExp + promoExp)
+    generalNonSalaryExpense - (rentExpense + utilityExpense + moduleExp + pantryExp + promoExp)
   );
+
+  // Total Beban Operasional P&L (Beban Gaji Periode Ini + Beban Operasional Umum)
+  const totalMonthlyExpenses = totalSalaryExpense + generalNonSalaryExpense;
 
   // Total Laba Bersih & Rasio
   const monthlyAccrualNetProfit = grandTotalMonthlyRevenueAccrual - totalMonthlyExpenses;
-  const monthlyCashNetFlow = totalCashIncomeMonth - totalMonthlyExpenses;
+  const monthlyCashNetFlow = totalCashIncomeMonth - totalCashExpensesInMonth;
   const profitMarginPercent =
     grandTotalMonthlyRevenueAccrual > 0
       ? Math.round((monthlyAccrualNetProfit / grandTotalMonthlyRevenueAccrual) * 100)
@@ -527,8 +555,8 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         'Honor Dibayarkan (Rp)': t.amountPaid,
       }));
 
-      // Sheet 4: Rincian Pengeluaran Kas Operasional
-      const expenseRows = expensesInMonth.map((e, idx) => ({
+      // Sheet 4: Rincian Pengeluaran Kas Operasional Non-Gaji
+      const expenseRows = generalExpensesInMonth.map((e, idx) => ({
         'No': idx + 1,
         'Tanggal': e.date,
         'Kategori': e.category,
@@ -1091,14 +1119,14 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                       <tr>
                         <th className="py-2.5 px-3">Nama Tutor</th>
                         <th className="py-2.5 px-2 text-center">Sesi Ajar</th>
-                        <th className="py-2.5 px-3 text-right">Honor Dibayarkan</th>
+                        <th className="py-2.5 px-3 text-right">Honor Periode Ini</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {tutorSalaryBreakdown.length === 0 ? (
                         <tr>
                           <td colSpan={3} className="py-4 text-center text-slate-400">
-                            Belum ada data pengeluaran gaji tutor di bulan ini.
+                            Belum ada beban honor tutor untuk periode bulan ini.
                           </td>
                         </tr>
                       ) : (

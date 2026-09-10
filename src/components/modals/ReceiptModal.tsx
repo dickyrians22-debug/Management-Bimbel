@@ -60,12 +60,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in cursor-pointer print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible"
       onClick={() => onClose?.()}
     >
       <div
         id="receipt-modal-container"
-        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 cursor-default"
+        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 cursor-default print:border-none print:shadow-none print:my-0 print:max-w-full"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Topbar (Hidden when printing) */}

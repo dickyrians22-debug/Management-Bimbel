@@ -128,12 +128,12 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200 print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible"
       onClick={onClose}
     >
       <div
         id="registration-receipt-modal-card"
-        className="w-full max-w-3xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden my-4 cursor-default relative flex flex-col max-h-[92vh]"
+        className="w-full max-w-3xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden my-4 cursor-default relative flex flex-col max-h-[92vh] print:bg-white print:border-none print:shadow-none print:my-0 print:max-w-full print:max-h-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Control Bar (Hidden When Printing) */}
@@ -229,7 +229,7 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
         </div>
 
         {/* Scrollable Document Preview Container */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-200/90 flex justify-center items-start">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-200/90 flex justify-center items-start print:bg-transparent print:p-0 print:overflow-visible">
           <div
             id="printable-registration-receipt"
             ref={receiptContainerRef}

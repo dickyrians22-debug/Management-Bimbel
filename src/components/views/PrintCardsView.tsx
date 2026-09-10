@@ -1811,7 +1811,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
         {activeMode === 'mode-b' && (
           <div
             id="printable-group-sheet"
-            className="bg-white shadow-2xl print:shadow-none w-full max-w-[297mm] min-h-[210mm] p-6 sm:p-8 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none font-sans text-xs leading-relaxed"
+            className="bg-white shadow-2xl print:shadow-none w-full min-w-[280mm] max-w-[297mm] min-h-[210mm] p-6 sm:p-8 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none font-sans text-xs leading-relaxed shrink-0"
           >
             <div>
               {/* Kop Surat Resmi Bimbel */}
@@ -2161,7 +2161,9 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
 
             <div
               id="printable-qr-cards-container"
-              className={`w-full flex flex-col items-center gap-6 ${
+              className={`w-full flex flex-col ${
+                modeCLayout === 'ktp-single' ? 'items-center' : 'items-start sm:items-center'
+              } gap-6 ${
                 isolatedPrintStudent ? 'print:hidden' : ''
               }`}
             >
@@ -2219,7 +2221,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                   return pages.map((pageStudents, pageIndex) => (
                     <div
                       key={`ktp-sheet-page-${pageIndex}`}
-                      className="ktp-sheet-page bg-white shadow-2xl print:shadow-none w-full max-w-[210mm] min-h-[297mm] p-4 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-0 font-sans break-after-page my-3 print:my-0"
+                      className="ktp-sheet-page bg-white shadow-2xl print:shadow-none w-[200mm] min-w-[200mm] max-w-[200mm] min-h-[297mm] p-4 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-0 font-sans break-after-page my-3 print:my-0 shrink-0"
                     >
                       {/* Page Header */}
                       <div className="border-b border-slate-200 pb-2 mb-3 flex items-center justify-between text-xs text-slate-500">

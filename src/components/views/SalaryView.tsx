@@ -1457,7 +1457,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
       {/* ========================================================================= */}
       {activeSlipModalTutor && (
         <div 
-          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-xs p-2 sm:p-6 flex justify-center items-start animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-xs p-2 sm:p-6 flex justify-center items-start animate-in fade-in duration-150 print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible"
           onClick={() => setActiveSlipModalTutor(null)}
         >
           {/* Floating Close Button at top right (always clickable) */}
@@ -1467,7 +1467,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
               e.stopPropagation();
               setActiveSlipModalTutor(null);
             }}
-            className="fixed top-4 right-4 z-50 px-3 py-2 bg-slate-900/90 hover:bg-rose-600 text-white rounded-full shadow-2xl border border-slate-700 hover:border-rose-500 flex items-center gap-1.5 text-xs font-bold transition cursor-pointer hover:scale-105"
+            className="no-print fixed top-4 right-4 z-50 px-3 py-2 bg-slate-900/90 hover:bg-rose-600 text-white rounded-full shadow-2xl border border-slate-700 hover:border-rose-500 flex items-center gap-1.5 text-xs font-bold transition cursor-pointer hover:scale-105"
             title="Tutup Slip (atau tekan ESC)"
           >
             <X className="w-4 h-4" />
@@ -1475,7 +1475,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
           </button>
 
           <div 
-            className="bg-white rounded-3xl shadow-2xl border border-slate-300 w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-2 sm:my-6 relative"
+            className="bg-white rounded-3xl shadow-2xl border border-slate-300 w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-2 sm:my-6 relative print:border-none print:shadow-none print:my-0 print:max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Controls (Sticky Top Toolbar - Not printed) */}
@@ -1558,7 +1558,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
             </div>
 
             {/* Printable Slip Gaji Document Area */}
-            <div ref={slipPrintRef} className="p-6 sm:p-8 space-y-6 text-slate-900 bg-white print:p-0 print:m-0">
+            <div id="printable-salary-slip" ref={slipPrintRef} className="p-6 sm:p-8 space-y-6 text-slate-900 bg-white print:p-0 print:m-0">
               {/* Slip Kop Header */}
               <div className="border-b-2 border-slate-900 pb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
