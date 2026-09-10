@@ -106,6 +106,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
 
   // Modal Khusus Penyesuaian Persentase/Skema Gaji Bulan Ini
   const [isMonthRateModalOpen, setIsMonthRateModalOpen] = useState<boolean>(false);
+  const [isConfirmResetModalOpen, setIsConfirmResetModalOpen] = useState<boolean>(false);
   const currentPeriodKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
   const currentPeriodOverride = settings.monthlySalaryOverrides?.[currentPeriodKey];
 
@@ -298,12 +299,14 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     showToast(`✅ Ketentuan persentase honor periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} berhasil disimpan!`);
   };
 
-  // Kembalikan tarif bulan ini ke Pengaturan Standar Bimbel
+  // Buka dialog konfirmasi reset skema bulan ini
   const handleResetMonthlyOverride = () => {
+    setIsConfirmResetModalOpen(true);
+  };
+
+  // Eksekusi kembalikan tarif bulan ini ke Pengaturan Standar Bimbel
+  const handleConfirmResetMonthlyOverride = () => {
     if (!onSaveSettings) return;
-    if (!confirm(`Kembalikan skema honor periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} ke pengaturan standar bimbel?`)) {
-      return;
-    }
 
     const existingOverrides = { ...(settings.monthlySalaryOverrides || {}) };
     delete existingOverrides[currentPeriodKey];
@@ -313,8 +316,9 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
       monthlySalaryOverrides: existingOverrides,
     });
 
+    setIsConfirmResetModalOpen(false);
     setIsMonthRateModalOpen(false);
-    showToast(`🔄 Periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} kembali menggunakan standar umum bimbel.`);
+    showToast(`🔄 Periode ${getMonthNameIndo(selectedMonth)} ${selectedYear} telah di-reset ke standar bimbel.`);
   };
 
   // Salary Formula & Percentages from settings (prioritaskan override per periode bulan jika ada)
@@ -2432,6 +2436,64 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
                   <span>Terapkan untuk Bulan Ini</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL KONFIRMASI RESET SKEMA BULANAN KE STANDAR */}
+      {isConfirmResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Kembalikan ke Standar Bimbel?
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Periode {getMonthNameIndo(selectedMonth)} {selectedYear}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              Ketentuan khusus untuk bulan <strong>{getMonthNameIndo(selectedMonth)} {selectedYear}</strong> akan dihapus. Perhitungan honor pada periode ini akan langsung kembali mengikuti <strong>Pengaturan Standar Bimbel</strong>.
+            </p>
+
+            {/* Kotak Perbandingan */}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2 mb-5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Skema Khusus Saat Ini:</span>
+                <span className="font-bold text-rose-600">
+                  {privatPct}% Privat / {groupPct}% Grup
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-1.5 border-t border-slate-200">
+                <span className="text-slate-500">Akan Kembali ke Standar:</span>
+                <span className="font-bold text-emerald-700">
+                  {settings.privatSalaryPercentage ?? 60}% Privat / {settings.groupSalaryPercentage ?? 40}% Grup
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmResetModalOpen(false)}
+                className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResetMonthlyOverride}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/30"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Ya, Kembalikan ke Standar</span>
+              </button>
             </div>
           </div>
         </div>

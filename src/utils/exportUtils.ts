@@ -98,7 +98,8 @@ export const exportMultiSheetExcel = (
  */
 export const exportElementToPng = async (
   target: HTMLElement | string,
-  fileName: string
+  fileName: string,
+  options?: { width?: number; height?: number; pixelRatio?: number }
 ): Promise<boolean> => {
   try {
     const node = typeof target === 'string' ? document.getElementById(target) : target;
@@ -111,7 +112,9 @@ export const exportElementToPng = async (
     // skipFonts: true prevents CORS SecurityError when reading document.styleSheets for Google Fonts
     const dataUrl = await toPng(node, {
       quality: 0.98,
-      pixelRatio: 2.5,
+      pixelRatio: options?.pixelRatio || 2.5,
+      width: options?.width,
+      height: options?.height,
       backgroundColor: '#ffffff',
       skipFonts: true,
       cacheBust: false,

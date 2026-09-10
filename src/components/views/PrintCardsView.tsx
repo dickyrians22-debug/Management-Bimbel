@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Printer,
   Calendar,
@@ -102,7 +102,21 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
   });
 
   // Mode A format style: full A4 page, 1/4 A4 pocket card (single), or 4-in-1 A4 sheet (bulk)
-  const [modeALayout, setModeALayout] = useState<'full-a4' | 'pocket-card' | 'pocket-card-sheet-4'>('full-a4');
+  const [modeALayout, setModeALayout] = useState<'full-a4' | 'pocket-card' | 'pocket-card-sheet-4'>(() => {
+    return userRole === 'siswa' ? 'pocket-card' : 'full-a4';
+  });
+
+  // Guard: Siswa role must never access bulk sheet layout or modes other than mode-a
+  useEffect(() => {
+    if (userRole === 'siswa') {
+      if (modeALayout === 'pocket-card-sheet-4') {
+        setModeALayout('pocket-card');
+      }
+      if (activeMode !== 'mode-a') {
+        setActiveMode('mode-a');
+      }
+    }
+  }, [userRole, modeALayout, activeMode]);
 
   // Filters for bulk pocket cards (4-in-1 A4 sheet)
   const [pocketFilterLevel, setPocketFilterLevel] = useState<string>('Semua');
@@ -110,6 +124,8 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
   const [pocketFilterTutor, setPocketFilterTutor] = useState<string>('Semua');
   const [pocketFilterStatus, setPocketFilterStatus] = useState<'Aktif' | 'Semua'>('Aktif');
   const [pocketSearchTerm, setPocketSearchTerm] = useState<string>('');
+  // Isolated sheet index for printing or exporting a specific sheet
+  const [isolatedSheetIdx, setIsolatedSheetIdx] = useState<number | null>(null);
 
   // --- MODE B (REKAP PRESENSI BULANAN) STATES & FILTERS ---
   const [matrixFilterLevel, setMatrixFilterLevel] = useState<string>('Semua');
@@ -415,6 +431,35 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
     }, 150);
   };
 
+  // Export single A4 sheet (pageIdx) to HD PNG
+  const handleExportSingleSheetPng = async (sheetIdx: number) => {
+    setIsExportingPng(true);
+    try {
+      const monthName = MONTH_NAMES_ID[selectedMonth - 1] || 'Bulan';
+      const fileName = `Lembar_Kartu_Saku_A4_Lembar_${sheetIdx + 1}_${monthName}_${selectedYear}`;
+      await exportElementToPng(`printable-pocket-sheet-${sheetIdx}`, fileName, {
+        width: 756,
+        height: 1085,
+        pixelRatio: 2.5,
+      });
+    } catch (err) {
+      console.error('Error exporting sheet PNG:', err);
+    } finally {
+      setIsExportingPng(false);
+    }
+  };
+
+  // Print a specific single sheet
+  const handlePrintSingleSheet = (sheetIdx: number) => {
+    setIsolatedSheetIdx(sheetIdx);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        setIsolatedSheetIdx(null);
+      }, 600);
+    }, 150);
+  };
+
   // Export Active Card / Report to High-Res PNG Image
   const handleExportCardPng = async () => {
     setIsExportingPng(true);
@@ -432,7 +477,11 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
             ? `Kartu_Saku_Massal_Lembar_1`
             : selectedStudent?.name?.replace(/\s+/g, '_') || 'Siswa';
         const fileName = `Rekap_Presensi_${studentName}_${monthName}_${selectedYear}`;
-        await exportElementToPng(targetId, fileName);
+        await exportElementToPng(targetId, fileName, {
+          width: modeALayout === 'pocket-card-sheet-4' ? 756 : undefined,
+          height: modeALayout === 'pocket-card-sheet-4' ? 1085 : undefined,
+          pixelRatio: 2.5,
+        });
       } else if (activeMode === 'mode-b') {
         const fileName = `Rekap_Presensi_Matriks_${monthName}_${selectedYear}_${bimbelName.replace(/\s+/g, '_')}`;
         await exportElementToPng('printable-group-sheet', fileName);
@@ -611,7 +660,9 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                 Rekap Presensi & Format Cetak Laporan
               </h2>
               <p className="text-xs text-slate-500">
-                Pilih mode cetak presensi: Laporan lengkap perorangan siswa atau lembar presensi kelas kelompok.
+                {userRole === 'siswa'
+                  ? 'Rekapitulasi resmi kehadiran belajar, catatan perkembangan materi, dan kartu kontrol presensi pribadi Anda.'
+                  : 'Pilih mode cetak presensi: Laporan lengkap perorangan siswa atau lembar presensi kelas kelompok.'}
               </p>
             </div>
           </div>
@@ -858,20 +909,22 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                 Format Tampilan:
               </label>
               <select
-                value={modeALayout}
+                value={userRole === 'siswa' && modeALayout === 'pocket-card-sheet-4' ? 'pocket-card' : modeALayout}
                 onChange={(e) => setModeALayout(e.target.value as any)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="full-a4">📄 Lembar Laporan Lengkap (A4 Full)</option>
                 <option value="pocket-card">🗂️ Kartu Saku 1 Siswa (1/4 Kertas A4)</option>
-                <option value="pocket-card-sheet-4">🖨️ Cetak Massal 4 Siswa / Kertas A4 (Siap Gunting)</option>
+                {userRole !== 'siswa' && (
+                  <option value="pocket-card-sheet-4">🖨️ Cetak Massal 4 Siswa / Kertas A4 (Siap Gunting)</option>
+                )}
               </select>
             </div>
           </div>
         )}
 
-        {/* EXTRA FILTERS FOR BULK 4-IN-1 A4 POCKET CARDS */}
-        {activeMode === 'mode-a' && modeALayout === 'pocket-card-sheet-4' && (
+        {/* EXTRA FILTERS FOR BULK 4-IN-1 A4 POCKET CARDS (Owner & Tutor Only) */}
+        {activeMode === 'mode-a' && modeALayout === 'pocket-card-sheet-4' && userRole !== 'siswa' && (
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
@@ -1193,7 +1246,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
       {/* ========================================================================= */}
       {/* PRINTABLE CONTAINER (Rendered according to activeMode & modeALayout)       */}
       {/* ========================================================================= */}
-      <div className="bg-slate-200 p-3 sm:p-8 rounded-3xl flex justify-center shadow-inner overflow-x-auto print:bg-white print:p-0 print:shadow-none">
+      <div className="bg-slate-200 p-2 sm:p-6 md:p-8 rounded-3xl shadow-inner overflow-x-auto print:bg-white print:p-0 print:shadow-none w-full">
         {/* ========================================================================= */}
         {/* MODE A: FULL A4 COMPLETE STUDENT REPORT (NO 6 ROWS LIMIT)                 */}
         {/* ========================================================================= */}
@@ -1598,12 +1651,12 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* MODE A: BULK 4-IN-1 A4 POCKET CARDS SHEET (2x2 GRID, 4 SISWA PER LEMBAR A4) */}
+        {/* MODE A: BULK 4-IN-1 A4 POCKET CARDS SHEET (2x2 GRID, 4 SISWA PER LEMBAR A4 - OWNER & TUTOR ONLY) */}
         {/* ========================================================================= */}
-        {activeMode === 'mode-a' && modeALayout === 'pocket-card-sheet-4' && (
-          <div id="printable-pocket-sheets-container" className="w-full flex flex-col items-center gap-8">
+        {activeMode === 'mode-a' && modeALayout === 'pocket-card-sheet-4' && userRole !== 'siswa' && (
+          <div id="printable-pocket-sheets-container" className="w-full flex flex-col items-start sm:items-center gap-6 py-1">
             {filteredPocketStudents.length === 0 ? (
-              <div className="bg-white p-8 rounded-2xl text-center max-w-md shadow border border-slate-200">
+              <div className="bg-white p-8 rounded-2xl text-center max-w-md shadow border border-slate-200 mx-auto">
                 <FileText className="w-10 h-10 text-slate-400 mx-auto mb-2" />
                 <h3 className="font-bold text-slate-800 text-sm">Tidak ada siswa yang sesuai filter</h3>
                 <p className="text-xs text-slate-500 mt-1">
@@ -1613,95 +1666,138 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
             ) : (
               pocketPages.map((pageStudents, pageIdx) => (
                 <div
-                  key={`pocket-sheet-page-${pageIdx}`}
-                  id={`printable-pocket-sheet-${pageIdx}`}
-                  className="a4-sheet-pocket-page bg-white shadow-2xl print:shadow-none w-full max-w-[210mm] min-h-[297mm] p-3 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-2 font-sans break-after-page my-3 print:my-0 relative box-border"
+                  key={`pocket-sheet-wrapper-${pageIdx}`}
+                  className={`w-full flex flex-col items-start sm:items-center ${
+                    isolatedSheetIdx !== null && isolatedSheetIdx !== pageIdx ? 'no-print hidden print:hidden' : ''
+                  }`}
                 >
-                  {/* Page Sheet Header (No-print for preview info) */}
-                  <div className="no-print border-b border-slate-200 pb-2 mb-2 flex items-center justify-between text-xs text-slate-500">
-                    <div className="flex items-center gap-2 font-bold text-slate-800">
-                      <span className="w-5 h-5 rounded bg-indigo-900 text-white flex items-center justify-center font-black text-[10px] overflow-hidden">
-                        <BimbelLogo settings={settings} />
+                  {/* Sheet Action Bar (No-print) */}
+                  <div className="no-print w-[200mm] min-w-[200mm] max-w-[200mm] mb-2 px-1 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-slate-800 bg-white border border-slate-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
+                        <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Lembar {pageIdx + 1} dari {pocketPages.length}</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-xl">
+                        {pageStudents.length} Siswa (2x2)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleExportSingleSheetPng(pageIdx)}
+                        disabled={isExportingPng}
+                        className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 font-bold rounded-xl flex items-center gap-1.5 transition text-xs cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                        title="Unduh hanya lembar ini sebagai gambar PNG HD siap cetak"
+                      >
+                        <Download className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Unduh Lembar {pageIdx + 1} (PNG HD)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePrintSingleSheet(pageIdx)}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl flex items-center gap-1.5 transition text-xs cursor-pointer shadow-xs active:scale-95"
+                        title="Cetak hanya lembar ini"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-slate-200" />
+                        <span>Cetak Lembar Ini</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sheet Element: Exactly 200mm wide, start at left (x = 0) on mobile so it is 100% visible, smoothly scrollable to the right */}
+                  <div
+                    id={`printable-pocket-sheet-${pageIdx}`}
+                    className="a4-sheet-pocket-page bg-white shadow-2xl print:shadow-none w-[200mm] min-w-[200mm] max-w-[200mm] h-[287mm] max-h-[287mm] min-h-[287mm] p-2 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-1 font-sans break-after-page my-1 print:my-0 relative box-border overflow-hidden shrink-0"
+                  >
+                    {/* Page Sheet Header (No-print for preview info) */}
+                    <div className="no-print border-b border-slate-200 pb-1.5 mb-1.5 flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2 font-bold text-slate-800">
+                        <span className="w-5 h-5 rounded bg-indigo-900 text-white flex items-center justify-center font-black text-[10px] overflow-hidden">
+                          <BimbelLogo settings={settings} />
+                        </span>
+                        <span>
+                          Lembar Kartu Saku Presensi 4-in-1 (Kertas A4) — Lembar {pageIdx + 1} dari {pocketPages.length}
+                        </span>
+                      </div>
+                      <span className="text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded font-mono font-bold">
+                        {pageStudents.length} Kartu Siswa (Kuadran 2x2)
+                      </span>
+                    </div>
+
+                    {/* 2x2 Grid with Central Cutting Guides */}
+                    <div className="pocket-cards-2x2-grid grid grid-cols-2 grid-rows-2 gap-2 flex-1 relative items-center justify-items-center w-full h-full overflow-hidden">
+                      {/* Central Cutting Line Horizontal */}
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-slate-400 pointer-events-none flex items-center justify-between px-2 z-10 print:border-black">
+                        <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white px-1">
+                          <Scissors className="w-3 h-3 rotate-90" />
+                        </span>
+                        <span className="text-[8.5px] font-mono text-slate-400 print:text-black bg-white px-1">
+                          Garis Potong Tengah Horizontal (A6)
+                        </span>
+                        <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white px-1">
+                          <Scissors className="w-3 h-3 -rotate-90" />
+                        </span>
+                      </div>
+
+                      {/* Central Cutting Line Vertical */}
+                      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 border-l border-dashed border-slate-400 pointer-events-none flex flex-col items-center justify-between py-2 z-10 print:border-black">
+                        <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white py-1">
+                          <Scissors className="w-3 h-3" />
+                        </span>
+                        <span className="text-[8.5px] font-mono text-slate-400 print:text-black bg-white py-1 [writing-mode:vertical-lr] rotate-180">
+                          Garis Potong Tengah Vertikal (A6)
+                        </span>
+                        <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white py-1">
+                          <Scissors className="w-3 h-3 rotate-180" />
+                        </span>
+                      </div>
+
+                      {/* 4 Cards inside the 2x2 quadrants */}
+                      {pageStudents.map((std) => (
+                        <div key={std.id} className="pocket-card-quadrant w-full h-full flex items-center justify-center p-0.5 box-border overflow-hidden">
+                          <StudentPocketAttendanceCard
+                            student={std}
+                            month={selectedMonth}
+                            year={selectedYear}
+                            attendance={attendance}
+                            incomes={incomes}
+                            settings={settings}
+                            effectiveOwnerName={effectiveOwnerName}
+                            effectiveOwnerTitle={effectiveOwnerTitle}
+                            effectiveCity={effectiveCity}
+                            isMonochrome={isMonochrome}
+                            users={users}
+                            showCuttingGuide={true}
+                            filterAllMonths={filterAllMonths}
+                            isSheetMode={true}
+                          />
+                        </div>
+                      ))}
+
+                      {/* If less than 4 students on this page, render placeholders to keep grid exact */}
+                      {Array.from({ length: 4 - pageStudents.length }).map((_, i) => (
+                        <div
+                          key={`empty-slot-${i}`}
+                          className="pocket-card-quadrant w-full h-full max-w-[98mm] min-h-[124mm] max-h-[133mm] border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs p-3 print:border-slate-300 box-border"
+                        >
+                          <Scissors className="w-4 h-4 text-slate-300 mb-1" />
+                          <span className="text-[9px] italic">Slot Kosong (Sisa Kuadran A4)</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Page Footer */}
+                    <div className="pt-1.5 border-t border-slate-200 text-center text-[8.5px] text-slate-400 flex items-center justify-between print:border-black print:text-black mt-1">
+                      <span className="flex items-center gap-1">
+                        <Scissors className="w-3 h-3" />
+                        Garis putus-putus adalah panduan potong kartu saku A6 (105 × 148.5 mm)
                       </span>
                       <span>
-                        Lembar Kartu Saku Presensi 4-in-1 (Kertas A4) — Lembar {pageIdx + 1} dari {pocketPages.length}
+                        {bimbelName} • Periode {MONTH_NAMES_ID[selectedMonth - 1]} {selectedYear} • Lembar {pageIdx + 1} / {pocketPages.length}
                       </span>
                     </div>
-                    <span className="text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded font-mono font-bold">
-                      {pageStudents.length} Kartu Siswa (Kuadran 2x2)
-                    </span>
-                  </div>
-
-                  {/* 2x2 Grid with Central Cutting Guides */}
-                  <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 relative items-center justify-items-center">
-                    {/* Central Cutting Line Horizontal */}
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-slate-400 pointer-events-none flex items-center justify-between px-2 z-10 print:border-black">
-                      <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white px-1">
-                        <Scissors className="w-3 h-3 rotate-90" />
-                      </span>
-                      <span className="text-[8.5px] font-mono text-slate-400 print:text-black bg-white px-1">
-                        Garis Potong Tengah Horizontal (A6)
-                      </span>
-                      <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white px-1">
-                        <Scissors className="w-3 h-3 -rotate-90" />
-                      </span>
-                    </div>
-
-                    {/* Central Cutting Line Vertical */}
-                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 border-l border-dashed border-slate-400 pointer-events-none flex flex-col items-center justify-between py-2 z-10 print:border-black">
-                      <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white py-1">
-                        <Scissors className="w-3 h-3" />
-                      </span>
-                      <span className="text-[8.5px] font-mono text-slate-400 print:text-black bg-white py-1 [writing-mode:vertical-lr] rotate-180">
-                        Garis Potong Tengah Vertikal (A6)
-                      </span>
-                      <span className="text-[10px] text-slate-500 print:text-black flex items-center gap-0.5 bg-white py-1">
-                        <Scissors className="w-3 h-3 rotate-180" />
-                      </span>
-                    </div>
-
-                    {/* 4 Cards inside the 2x2 quadrants */}
-                    {pageStudents.map((std) => (
-                      <div key={std.id} className="w-full h-full flex items-center justify-center p-1">
-                        <StudentPocketAttendanceCard
-                          student={std}
-                          month={selectedMonth}
-                          year={selectedYear}
-                          attendance={attendance}
-                          incomes={incomes}
-                          settings={settings}
-                          effectiveOwnerName={effectiveOwnerName}
-                          effectiveOwnerTitle={effectiveOwnerTitle}
-                          effectiveCity={effectiveCity}
-                          isMonochrome={isMonochrome}
-                          users={users}
-                          showCuttingGuide={true}
-                          filterAllMonths={filterAllMonths}
-                        />
-                      </div>
-                    ))}
-
-                    {/* If less than 4 students on this page, render placeholders to keep grid exact */}
-                    {Array.from({ length: 4 - pageStudents.length }).map((_, i) => (
-                      <div
-                        key={`empty-slot-${i}`}
-                        className="w-full h-full max-w-[102mm] min-h-[140mm] border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs p-4 print:border-slate-300"
-                      >
-                        <Scissors className="w-5 h-5 text-slate-300 mb-1" />
-                        <span className="text-[10px] italic">Slot Kosong (Sisa Kuadran A4)</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Page Footer */}
-                  <div className="pt-2 border-t border-slate-200 text-center text-[9px] text-slate-400 flex items-center justify-between print:border-black print:text-black mt-2">
-                    <span className="flex items-center gap-1">
-                      <Scissors className="w-3 h-3" />
-                      Garis putus-putus adalah panduan potong kartu saku A6 (105 × 148.5 mm)
-                    </span>
-                    <span>
-                      {bimbelName} • Periode {MONTH_NAMES_ID[selectedMonth - 1]} {selectedYear} • Lembar {pageIdx + 1} / {pocketPages.length}
-                    </span>
                   </div>
                 </div>
               ))

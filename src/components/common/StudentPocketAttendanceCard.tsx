@@ -17,6 +17,7 @@ interface StudentPocketAttendanceCardProps {
   users?: UserAccount[];
   showCuttingGuide?: boolean;
   filterAllMonths?: boolean;
+  isSheetMode?: boolean;
 }
 
 export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardProps> = ({
@@ -32,6 +33,7 @@ export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardPr
   users = [],
   showCuttingGuide = true,
   filterAllMonths = false,
+  isSheetMode = false,
 }) => {
   const bimbelName = settings?.bimbelName || 'Bimbel Sigma';
   const bimbelTagline = settings?.tagline || 'Belajar Sampai Paham, Bukan Sekedar Hafal';
@@ -86,16 +88,18 @@ export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardPr
 
   return (
     <div
-      className={`student-pocket-card bg-white p-2.5 rounded-xl flex flex-col justify-between text-slate-800 text-[10px] leading-tight box-border relative overflow-hidden ${
+      className={`student-pocket-card bg-white ${
+        isSheetMode ? 'p-2' : 'p-2.5'
+      } rounded-xl flex flex-col justify-between text-slate-800 text-[10px] leading-tight box-border relative overflow-hidden ${
         showCuttingGuide
           ? 'border border-dashed border-slate-400 print:border-black'
           : 'border border-slate-300 print:border-black'
       } ${isMonochrome ? 'print:text-black' : ''}`}
       style={{
         width: '100%',
-        maxWidth: '102mm',
-        minHeight: '138mm',
-        maxHeight: '141mm',
+        maxWidth: isSheetMode ? '98mm' : '102mm',
+        minHeight: isSheetMode ? '124mm' : '136mm',
+        maxHeight: isSheetMode ? '133mm' : '140mm',
         height: '100%',
       }}
     >
@@ -380,15 +384,15 @@ export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardPr
       </div>
 
       {/* 5. BOTTOM SECTION: SIGNATURES */}
-      <div className="grid grid-cols-2 gap-2 text-center text-[7.5px] pt-1 border-t border-slate-300 print:border-black mt-1">
+      <div className={`grid grid-cols-2 gap-2 text-center text-[7.5px] ${isSheetMode ? 'pt-0.5 mt-0.5' : 'pt-1 mt-1'} border-t border-slate-300 print:border-black`}>
         <div>
-          <p className="text-slate-600 print:text-slate-800 mb-3.5 leading-none">Orang Tua / Wali,</p>
+          <p className={`text-slate-600 print:text-slate-800 ${isSheetMode ? 'mb-2' : 'mb-3.5'} leading-none`}>Orang Tua / Wali,</p>
           <p className="font-bold text-slate-900 print:text-black border-t border-slate-400 print:border-black pt-0.5 leading-none">
             ( .............................. )
           </p>
         </div>
         <div>
-          <p className="text-slate-600 print:text-slate-800 mb-3.5 leading-none">
+          <p className={`text-slate-600 print:text-slate-800 ${isSheetMode ? 'mb-2' : 'mb-3.5'} leading-none`}>
             {effectiveOwnerTitle || 'Tutor / Pengajar'},
           </p>
           <p className="font-bold text-slate-900 print:text-black border-t border-slate-400 print:border-black pt-0.5 leading-none truncate">

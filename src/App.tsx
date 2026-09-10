@@ -1826,8 +1826,16 @@ export default function App() {
           {/* TAB 7: CETAK REKAP PRESENSI & KARTU (MODE A & MODE B) */}
           {currentTab === 'print-cards' && (
             <PrintCardsView
-              students={students}
-              attendance={attendance}
+              students={
+                currentUser.role === 'siswa'
+                  ? [currentStudentObj]
+                  : students
+              }
+              attendance={
+                currentUser.role === 'siswa'
+                  ? attendance.filter((a) => a.studentId === currentStudentObj.id)
+                  : attendance
+              }
               incomes={incomes}
               users={users}
               userRole={currentUser.role}

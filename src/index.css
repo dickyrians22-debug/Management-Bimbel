@@ -13,7 +13,7 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm 6mm;
+    margin: 4mm 4mm;
   }
 
   body {
@@ -73,26 +73,53 @@
     background: white !important;
   }
 
-  /* Full A4 Page container for 1/4 pocket cards */
+  /* Full A4 Page container for 1/4 pocket cards (4 cards per A4 page) */
   .a4-page-grid,
   .a4-sheet-pocket-page {
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-height: 297mm !important;
+    width: 202mm !important;
+    max-width: 202mm !important;
+    height: 288mm !important;
+    max-height: 288mm !important;
+    min-height: 288mm !important;
     margin: 0 auto !important;
-    padding: 3mm !important;
+    padding: 1.5mm !important;
     box-sizing: border-box !important;
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
   }
 
-  .quarter-card,
-  .student-pocket-card {
+  .a4-sheet-pocket-page .pocket-cards-2x2-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: repeat(2, 1fr) !important;
+    gap: 1.5mm !important;
+    flex: 1 1 auto !important;
+    height: calc(100% - 6mm) !important;
+    max-height: calc(100% - 6mm) !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  .a4-sheet-pocket-page .student-pocket-card {
+    width: 100% !important;
+    max-width: 98mm !important;
+    height: 100% !important;
+    max-height: 135mm !important;
+    min-height: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .quarter-card {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     box-sizing: border-box !important;
