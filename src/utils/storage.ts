@@ -1299,4 +1299,29 @@ export function deduplicateAttendanceList(records: AttendanceRecord[]): {
   };
 }
 
+/**
+ * Konversi nominal angka ke kalimat terbilang bahasa Indonesia resmi untuk kwitansi/BKK
+ */
+export function angkaTerbilang(nominal: number): string {
+  if (isNaN(nominal) || nominal <= 0) return 'Nol Rupiah';
+  const satuan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+
+  function bilang(n: number): string {
+    n = Math.floor(Math.abs(n));
+    if (n < 12) return satuan[n];
+    if (n < 20) return bilang(n - 10) + ' Belas';
+    if (n < 100) return bilang(Math.floor(n / 10)) + ' Puluh ' + bilang(n % 10);
+    if (n < 200) return 'Seratus ' + bilang(n - 100);
+    if (n < 1000) return bilang(Math.floor(n / 100)) + ' Ratus ' + bilang(n % 100);
+    if (n < 2000) return 'Seribu ' + bilang(n - 1000);
+    if (n < 1000000) return bilang(Math.floor(n / 1000)) + ' Ribu ' + bilang(n % 1000);
+    if (n < 1000000000) return bilang(Math.floor(n / 1000000)) + ' Juta ' + bilang(n % 1000000);
+    if (n < 1000000000000) return bilang(Math.floor(n / 1000000000)) + ' Miliar ' + bilang(n % 1000000000);
+    return bilang(Math.floor(n / 1000000000000)) + ' Triliun ' + bilang(n % 1000000000000);
+  }
+
+  const hasil = bilang(nominal).replace(/\s+/g, ' ').trim();
+  return hasil ? `${hasil} Rupiah` : 'Nol Rupiah';
+}
+
 

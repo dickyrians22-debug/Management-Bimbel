@@ -41,6 +41,7 @@ import {
   normalizeIncomeReceiptNumber,
 } from '../../utils/storage';
 import { exportToExcel, exportElementToPng } from '../../utils/exportUtils';
+import { ExpenseReceiptModal } from '../modals/ExpenseReceiptModal';
 
 interface CashBookViewProps {
   incomes: IncomeRecord[];
@@ -52,6 +53,7 @@ interface CashBookViewProps {
   onDeleteIncome: (id: string, label: string) => void;
   onDeleteExpense: (id: string, label: string) => void;
   onViewReceipt: (income: IncomeRecord) => void;
+  onViewExpenseReceipt?: (expense: ExpenseRecord) => void;
 }
 
 export interface UnifiedTransaction {
@@ -81,9 +83,12 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
   onDeleteIncome,
   onDeleteExpense,
   onViewReceipt,
+  onViewExpenseReceipt,
 }) => {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+
+  const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<ExpenseRecord | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
@@ -732,8 +737,24 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
                           {isIncome && tx.rawIncome && (
                             <button
                               onClick={() => onViewReceipt(tx.rawIncome!)}
-                              title="Cetak Kwitansi"
+                              title="Cetak Kwitansi Kas Masuk"
                               className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {!isIncome && tx.rawExpense && (
+                            <button
+                              onClick={() => {
+                                if (onViewExpenseReceipt) {
+                                  onViewExpenseReceipt(tx.rawExpense!);
+                                } else {
+                                  setSelectedExpenseForReceipt(tx.rawExpense!);
+                                }
+                              }}
+                              title="Cetak Bukti Kas Keluar (BKK)"
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             >
                               <Printer className="w-4 h-4" />
                             </button>
@@ -888,6 +909,15 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
           </div>
         )}
       </div>
+      {/* Modal Kwitansi / Bukti Kas Keluar */}
+      {selectedExpenseForReceipt && (
+        <ExpenseReceiptModal
+          isOpen={Boolean(selectedExpenseForReceipt)}
+          onClose={() => setSelectedExpenseForReceipt(null)}
+          expense={selectedExpenseForReceipt}
+          settings={settings}
+        />
+      )}
     </div>
   );
 };

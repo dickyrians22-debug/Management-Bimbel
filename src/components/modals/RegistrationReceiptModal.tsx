@@ -200,6 +200,17 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
               </button>
             </div>
 
+            {/* Kirim ke WhatsApp Admin */}
+            <button
+              type="button"
+              onClick={handleSendWhatsAppConfirmation}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              title="Kirim bukti pendaftaran ke WhatsApp Admin"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>Kirim ke WA</span>
+            </button>
+
             <button
               type="button"
               onClick={handleDownloadImage}
@@ -493,39 +504,6 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
             <div className="text-center text-[10px] text-slate-400 border-t border-slate-200 pt-2">
               *Lembar bukti registrasi ini sah diterbitkan secara digital oleh Sistem Manajemen &amp; PPDB {bimbelName}.
             </div>
-          </div>
-        </div>
-
-        {/* Bottom Actions Bar (Hidden When Printing) */}
-        <div className="no-print bg-slate-900 px-5 py-3.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={handleSendWhatsAppConfirmation}
-            className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-sm"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Kirim Bukti ke WhatsApp Admin</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownloadImage}
-              disabled={isExportingImage}
-              className="py-2.5 px-4 bg-amber-500 hover:bg-amber-400 active:scale-95 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-sm"
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span>Simpan Gambar (PNG)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-indigo-600/30"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF (A4)</span>
-            </button>
           </div>
         </div>
       </div>

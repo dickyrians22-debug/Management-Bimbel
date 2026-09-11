@@ -98,6 +98,7 @@ import { SelfAttendanceModal } from './components/modals/SelfAttendanceModal';
 import { IncomeModal } from './components/modals/IncomeModal';
 import { ExpenseModal } from './components/modals/ExpenseModal';
 import { ReceiptModal } from './components/modals/ReceiptModal';
+import { ExpenseReceiptModal } from './components/modals/ExpenseReceiptModal';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { UserAccountModal } from './components/modals/UserAccountModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
@@ -220,6 +221,7 @@ export default function App() {
 
   // Receipt Modal
   const [receiptIncome, setReceiptIncome] = useState<IncomeRecord | null>(null);
+  const [receiptExpense, setReceiptExpense] = useState<ExpenseRecord | null>(null);
 
   // User Account Modal
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -1820,6 +1822,7 @@ export default function App() {
               onDeleteIncome={handleDeleteIncome}
               onDeleteExpense={handleDeleteExpense}
               onViewReceipt={(inc) => setReceiptIncome(inc)}
+              onViewExpenseReceipt={(exp) => setReceiptExpense(exp)}
             />
           )}
 
@@ -1995,13 +1998,22 @@ export default function App() {
         tutors={users.filter((u) => u.role === 'tutor' && u.isActive !== false)}
       />
 
-      {/* 7. Receipt Modal (Kwitansi Resmi) */}
+      {/* 7. Receipt Modal (Kwitansi Kas Masuk & Kas Keluar) */}
       {receiptIncome && (
         <ReceiptModal
           isOpen={Boolean(receiptIncome)}
           onClose={() => setReceiptIncome(null)}
           income={receiptIncome}
           student={students.find((s) => s.id === receiptIncome.studentId)}
+          settings={settings}
+        />
+      )}
+
+      {receiptExpense && (
+        <ExpenseReceiptModal
+          isOpen={Boolean(receiptExpense)}
+          onClose={() => setReceiptExpense(null)}
+          expense={receiptExpense}
           settings={settings}
         />
       )}

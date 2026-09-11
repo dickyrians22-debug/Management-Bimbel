@@ -11,27 +11,34 @@ import {
   Layers,
   ArrowDownRight,
   FileSpreadsheet,
+  Printer,
 } from 'lucide-react';
-import { ExpenseRecord, ExpenseCategory, UserRole } from '../../types';
+import { ExpenseRecord, ExpenseCategory, UserRole, BimbelSettings } from '../../types';
 import { formatRupiah, formatDateIndo, MONTH_NAMES_ID } from '../../utils/storage';
 import { exportToExcel } from '../../utils/exportUtils';
+import { ExpenseReceiptModal } from '../modals/ExpenseReceiptModal';
 
 interface ExpenseViewProps {
   expenses: ExpenseRecord[];
   userRole: UserRole;
+  settings?: BimbelSettings;
   onOpenExpenseModal: (editExpense?: ExpenseRecord) => void;
   onDeleteExpense: (id: string, label: string) => void;
+  onViewExpenseReceipt?: (expense: ExpenseRecord) => void;
 }
 
 export const ExpenseView: React.FC<ExpenseViewProps> = ({
   expenses,
   userRole,
+  settings,
   onOpenExpenseModal,
   onDeleteExpense,
+  onViewExpenseReceipt,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterMonth, setFilterMonth] = useState<string>('All');
+  const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<ExpenseRecord | null>(null);
 
   const canEdit = userRole === 'owner';
 
@@ -260,6 +267,19 @@ export const ExpenseView: React.FC<ExpenseViewProps> = ({
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => {
+                              if (onViewExpenseReceipt) {
+                                onViewExpenseReceipt(exp);
+                              } else {
+                                setSelectedExpenseForReceipt(exp);
+                              }
+                            }}
+                            title="Cetak Bukti Kas Keluar (BKK)"
+                            className="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => onOpenExpenseModal(exp)}
                             title="Edit Pengeluaran"
                             className="p-1.5 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 rounded-lg transition cursor-pointer"
@@ -288,6 +308,16 @@ export const ExpenseView: React.FC<ExpenseViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal Kwitansi / Bukti Kas Keluar */}
+      {selectedExpenseForReceipt && (
+        <ExpenseReceiptModal
+          isOpen={Boolean(selectedExpenseForReceipt)}
+          onClose={() => setSelectedExpenseForReceipt(null)}
+          expense={selectedExpenseForReceipt}
+          settings={settings}
+        />
+      )}
     </div>
   );
 };
