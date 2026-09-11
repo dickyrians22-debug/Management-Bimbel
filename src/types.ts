@@ -253,6 +253,8 @@ export interface MonthlyPLSummary {
   cashNetFlow: number; // cashIncome - totalExpenses
   sessionCount: number;
   presentCount: number;
+  expensesByCategory?: Record<string, number>;
+  incomesByCategory?: Record<string, number>;
 }
 
 export interface TutorSessionDetail {

@@ -1853,6 +1853,7 @@ export default function App() {
               settings={settings}
               students={students}
               users={users}
+              onNavigateToSettings={() => setCurrentTab('settings')}
             />
           )}
 

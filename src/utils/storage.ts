@@ -598,6 +598,92 @@ export function calculateAnnualPL(
     const generalNonSalaryExpense = generalExpensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
     const otherExpense = Math.max(0, generalNonSalaryExpense - (rentExpense + utilityExpense + moduleExpense));
 
+    // Dynamic breakdown of expenses based on settings.expenseCategories
+    const configuredExpCategories = (settings?.expenseCategories && settings.expenseCategories.length > 0)
+      ? [...settings.expenseCategories]
+      : [
+          'Gaji / Honor Tutor',
+          'Sewa Tempat / Gedung',
+          'Listrik, Internet & Air',
+          'Modul, ATK & Cetak',
+          'Marketing / Iklan',
+          'Snack & Konsumsi Siswa',
+          'Kebersihan & Operasional',
+          'Lain-lain',
+        ];
+
+    const expensesByCategory: Record<string, number> = {};
+    configuredExpCategories.forEach((cat) => {
+      expensesByCategory[cat] = 0;
+    });
+
+    // Allocate Salary
+    const salaryCatName = getSystemSalaryCategory(settings);
+    const targetSalaryKey = configuredExpCategories.find((c) =>
+      isSystemExpenseCategory(c, settings) || c.toLowerCase() === salaryCatName.toLowerCase()
+    ) || salaryCatName;
+    expensesByCategory[targetSalaryKey] = tutorSalaryExpense;
+
+    // Allocate General Non-Salary Expenses
+    generalExpensesInMonth.forEach((e) => {
+      const eCat = (e.category || '').trim();
+      const matchedKey = configuredExpCategories.find((c) => c.trim().toLowerCase() === eCat.toLowerCase());
+      if (matchedKey) {
+        expensesByCategory[matchedKey] = (expensesByCategory[matchedKey] || 0) + (e.amount || 0);
+      } else {
+        const fallbackKey = configuredExpCategories.find((c) => c.toLowerCase().includes('lain')) || eCat || 'Lain-lain';
+        expensesByCategory[fallbackKey] = (expensesByCategory[fallbackKey] || 0) + (e.amount || 0);
+      }
+    });
+
+    // Dynamic breakdown of incomes based on settings.incomeCategories
+    const configuredIncCategories = (settings?.incomeCategories && settings.incomeCategories.length > 0)
+      ? [...settings.incomeCategories]
+      : [
+          'Pembayaran SPP Siswa',
+          'Biaya Pendaftaran / Registrasi',
+          'Modul & Buku Paket',
+          'Try Out & Ujian Simulasi',
+          'Event / Workshop Bimbel',
+          'Lainnya',
+        ];
+
+    const incomesByCategory: Record<string, number> = {};
+    configuredIncCategories.forEach((cat) => {
+      incomesByCategory[cat] = 0;
+    });
+
+    const sppCatName = getSystemSppCategory(settings);
+    const targetSppKey = configuredIncCategories.find((c) =>
+      isSystemIncomeCategory(c, settings) || c.toLowerCase() === sppCatName.toLowerCase()
+    ) || sppCatName;
+    incomesByCategory[targetSppKey] = sppPaidForMonth;
+
+    // Allocate Non-SPP Incomes
+    const nonSppList = allIncomes.filter((inc) => {
+      const isSpp =
+        inc.incomeCategory === 'spp_monthly' ||
+        inc.incomeCategory === 'session_pack' ||
+        isSystemIncomeCategory(inc.category || '', settings);
+      if (isSpp) return false;
+      const incYear = Number(inc.accrualYear);
+      const incMonth = Number(inc.accrualMonth);
+      const matchesAccrual = incYear === year && incMonth === m;
+      const matchesDate = Boolean(inc.datePaid && inc.datePaid.startsWith(targetMonthStr));
+      return matchesAccrual || matchesDate;
+    });
+
+    nonSppList.forEach((inc) => {
+      const incCat = (inc.category || '').trim();
+      const matchedKey = configuredIncCategories.find((c) => c.trim().toLowerCase() === incCat.toLowerCase());
+      if (matchedKey) {
+        incomesByCategory[matchedKey] = (incomesByCategory[matchedKey] || 0) + (inc.amount || 0);
+      } else {
+        const fallbackKey = configuredIncCategories.find((c) => c.toLowerCase().includes('lain')) || incCat || 'Lainnya';
+        incomesByCategory[fallbackKey] = (incomesByCategory[fallbackKey] || 0) + (inc.amount || 0);
+      }
+    });
+
     // Total Beban P&L (Accrual Basis: Beban Honor Periode Ini + Beban Operasional Umum)
     const totalExpenses = tutorSalaryExpense + generalNonSalaryExpense;
 
@@ -617,6 +703,8 @@ export function calculateAnnualPL(
       cashNetFlow: cashIncome - totalExpenses,
       sessionCount,
       presentCount,
+      expensesByCategory,
+      incomesByCategory,
     });
   }
 

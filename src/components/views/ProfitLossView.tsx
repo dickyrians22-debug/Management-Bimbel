@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   BarChart3,
   Calendar,
@@ -25,6 +25,10 @@ import {
   School,
   FileText,
   Palette,
+  Settings,
+  Database,
+  Tag,
+  ChevronRight,
 } from 'lucide-react';
 import { BimbelLogo } from '../common/BimbelLogo';
 import {
@@ -43,6 +47,8 @@ import {
   getMonthNameIndo,
   isSystemExpenseCategory,
   isSystemIncomeCategory,
+  getSystemSalaryCategory,
+  getSystemSppCategory,
   resolveTutorName,
 } from '../../utils/storage';
 import { exportToExcel, exportMultiSheetExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
@@ -54,6 +60,7 @@ interface ProfitLossViewProps {
   settings?: BimbelSettings;
   students?: Student[];
   users?: UserAccount[];
+  onNavigateToSettings?: () => void;
 }
 
 type PLViewMode = 'monthly' | 'annual';
@@ -65,6 +72,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   settings,
   students = [],
   users = [],
+  onNavigateToSettings,
 }) => {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -156,6 +164,66 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   // Total Uang SPP yang Diterima dari Buku Kas untuk Periode Bulan Ini
   const totalSppPaidCashBook = sppCashIncomesForMonth.reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
+  // DYNAMIC CATEGORIES DARI PENGATURAN DATABASE
+  const salaryCategoryName = getSystemSalaryCategory(settings);
+  const sppCategoryName = getSystemSppCategory(settings);
+
+  const configuredExpenseCategories = useMemo(() => {
+    const defaultList = [
+      'Gaji / Honor Tutor',
+      'Sewa Tempat / Gedung',
+      'Listrik, Internet & Air',
+      'Modul, ATK & Cetak',
+      'Marketing / Iklan',
+      'Snack & Konsumsi Siswa',
+      'Kebersihan & Operasional',
+      'Lain-lain',
+    ];
+    const list = settings?.expenseCategories && settings.expenseCategories.length > 0
+      ? [...settings.expenseCategories]
+      : defaultList;
+
+    if (!list.some((c) => isSystemExpenseCategory(c, settings) || c.toLowerCase().trim() === salaryCategoryName.toLowerCase().trim())) {
+      list.unshift(salaryCategoryName);
+    }
+
+    expenses.forEach((e) => {
+      const cName = (e.category || '').trim();
+      if (cName && !isSystemExpenseCategory(cName, settings) && !list.some((existing) => existing.toLowerCase().trim() === cName.toLowerCase())) {
+        list.push(cName);
+      }
+    });
+
+    return list;
+  }, [settings?.expenseCategories, settings?.systemSalaryCategory, salaryCategoryName, expenses]);
+
+  const configuredIncomeCategories = useMemo(() => {
+    const defaultList = [
+      'Pembayaran SPP Siswa',
+      'Biaya Pendaftaran / Registrasi',
+      'Modul & Buku Paket',
+      'Try Out & Ujian Simulasi',
+      'Event / Workshop Bimbel',
+      'Lainnya',
+    ];
+    const list = settings?.incomeCategories && settings.incomeCategories.length > 0
+      ? [...settings.incomeCategories]
+      : defaultList;
+
+    if (!list.some((c) => isSystemIncomeCategory(c, settings) || c.toLowerCase().trim() === sppCategoryName.toLowerCase().trim())) {
+      list.unshift(sppCategoryName);
+    }
+
+    incomes.forEach((i) => {
+      const cName = (i.category || '').trim();
+      if (cName && !isSystemIncomeCategory(cName, settings) && !list.some((existing) => existing.toLowerCase().trim() === cName.toLowerCase())) {
+        list.push(cName);
+      }
+    });
+
+    return list;
+  }, [settings?.incomeCategories, settings?.systemSppCategory, sppCategoryName, incomes]);
+
   // 2. Pendapatan Non-SPP dari Buku Kas (Pendaftaran, Modul, Try Out, dll)
   const nonSppIncomesForMonth = incomes.filter((inc) => {
     const isSpp =
@@ -174,44 +242,77 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     return matchesDatePaid || matchesAccrual;
   });
 
-  const regFeeIncome = nonSppIncomesForMonth
-    .filter(
-      (inc) =>
-        (inc.category || '').toLowerCase().includes('daftar') ||
-        (inc.category || '').toLowerCase().includes('registrasi') ||
-        inc.incomeCategory === 'registration'
-    )
-    .reduce((sum, inc) => sum + (inc.amount || 0), 0);
+  // Dynamic breakdown of Non-SPP Incomes based on database settings
+  const nonSppCategoryBreakdown = useMemo(() => {
+    const nonSppCategories = configuredIncomeCategories.filter(
+      (c) => !isSystemIncomeCategory(c, settings)
+    );
 
-  const moduleIncome = nonSppIncomesForMonth
-    .filter(
-      (inc) =>
-        (inc.category || '').toLowerCase().includes('modul') ||
-        (inc.category || '').toLowerCase().includes('buku')
-    )
-    .reduce((sum, inc) => sum + (inc.amount || 0), 0);
+    const allocatedIncomeIds = new Set<string>();
 
-  const tryOutIncome = nonSppIncomesForMonth
-    .filter(
-      (inc) =>
-        (inc.category || '').toLowerCase().includes('try out') ||
-        (inc.category || '').toLowerCase().includes('ujian') ||
-        (inc.category || '').toLowerCase().includes('simulasi')
-    )
-    .reduce((sum, inc) => sum + (inc.amount || 0), 0);
+    const breakdown = nonSppCategories.map((cat) => {
+      const matchedRecords = nonSppIncomesForMonth.filter((inc) => {
+        const incCat = (inc.category || '').trim().toLowerCase();
+        const target = cat.trim().toLowerCase();
+        if (incCat === target) return true;
+        // Fallback for registration tag
+        if (inc.incomeCategory === 'registration' && (target.includes('daftar') || target.includes('registrasi'))) {
+          return true;
+        }
+        return false;
+      });
 
-  const otherNonSppIncome = nonSppIncomesForMonth
-    .filter(
-      (inc) =>
-        !(inc.category || '').toLowerCase().includes('daftar') &&
-        !(inc.category || '').toLowerCase().includes('registrasi') &&
-        !(inc.category || '').toLowerCase().includes('modul') &&
-        !(inc.category || '').toLowerCase().includes('buku') &&
-        !(inc.category || '').toLowerCase().includes('try out') &&
-        !(inc.category || '').toLowerCase().includes('ujian') &&
-        !(inc.category || '').toLowerCase().includes('simulasi')
-    )
-    .reduce((sum, inc) => sum + (inc.amount || 0), 0);
+      matchedRecords.forEach((r) => allocatedIncomeIds.add(r.id));
+      const amount = matchedRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+      return {
+        categoryName: cat,
+        amount,
+        count: matchedRecords.length,
+        records: matchedRecords,
+      };
+    });
+
+    // Allocate any unassigned non-SPP incomes to "Lainnya" or append to list
+    const unallocated = nonSppIncomesForMonth.filter((r) => !allocatedIncomeIds.has(r.id));
+    if (unallocated.length > 0) {
+      const unallocatedAmount = unallocated.reduce((sum, r) => sum + (r.amount || 0), 0);
+      const otherCategoryIndex = breakdown.findIndex(
+        (b) => b.categoryName.toLowerCase().includes('lain')
+      );
+      if (otherCategoryIndex >= 0) {
+        breakdown[otherCategoryIndex].amount += unallocatedAmount;
+        breakdown[otherCategoryIndex].count += unallocated.length;
+        breakdown[otherCategoryIndex].records.push(...unallocated);
+      } else {
+        breakdown.push({
+          categoryName: 'Lainnya',
+          amount: unallocatedAmount,
+          count: unallocated.length,
+          records: unallocated,
+        });
+      }
+    }
+
+    return breakdown;
+  }, [configuredIncomeCategories, nonSppIncomesForMonth, settings]);
+
+  const totalNonSppIncome = nonSppCategoryBreakdown.reduce((sum, item) => sum + item.amount, 0);
+
+  // Backward-compatible individual helpers for legacy references
+  const regFeeIncome = nonSppCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('daftar') || b.categoryName.toLowerCase().includes('registrasi'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const moduleIncome = nonSppCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('modul') || b.categoryName.toLowerCase().includes('buku'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const tryOutIncome = nonSppCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('try out') || b.categoryName.toLowerCase().includes('ujian') || b.categoryName.toLowerCase().includes('simulasi'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const otherNonSppIncome = Math.max(0, totalNonSppIncome - (regFeeIncome + moduleIncome + tryOutIncome));
 
   // 3. Pemetaan Rincian Siswa & SPP MURNI dari Buku Kas (Presensi hanya untuk info sesi hadir)
   const studentBreakdownMap: {
@@ -343,8 +444,6 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   const totalSppAccrual = totalSppPaidCashBook; // Murni dari Buku Kas Masuk
   const totalUncollectedSpp = 0; // Tidak ada piutang semu dari absensi
 
-  const totalNonSppIncome = regFeeIncome + moduleIncome + tryOutIncome + otherNonSppIncome;
-
   // Total Pendapatan Operasional MURNI dari Buku Kas (SPP + Non-SPP)
   const grandTotalMonthlyRevenueAccrual = totalSppPaidCashBook + totalNonSppIncome;
   const totalMonthlyRevenue = grandTotalMonthlyRevenueAccrual;
@@ -413,57 +512,79 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     };
   }).filter((t) => t.sessionsTaught > 0 || t.amountPaid > 0);
 
-  // 2. Beban Fasilitas & Utilitas
-  const rentExpense = generalExpensesInMonth
-    .filter(
-      (e) =>
-        (e.category || '').toLowerCase().includes('sewa') ||
-        (e.category || '').toLowerCase().includes('gedung')
-    )
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+  // Dynamic breakdown of Non-Salary Expenses based on database settings
+  const expenseCategoryBreakdown = useMemo(() => {
+    const nonSalaryCategories = configuredExpenseCategories.filter(
+      (c) => !isSystemExpenseCategory(c, settings)
+    );
 
-  const utilityExpense = generalExpensesInMonth
-    .filter(
-      (e) =>
-        (e.category || '').toLowerCase().includes('listrik') ||
-        (e.category || '').toLowerCase().includes('internet') ||
-        (e.category || '').toLowerCase().includes('wifi') ||
-        (e.category || '').toLowerCase().includes('air')
-    )
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const allocatedExpenseIds = new Set<string>();
 
-  // 3. Beban Pembelajaran & Operasional Kelas
-  const moduleExp = generalExpensesInMonth
-    .filter(
-      (e) =>
-        (e.category || '').toLowerCase().includes('modul') ||
-        (e.category || '').toLowerCase().includes('atk') ||
-        (e.category || '').toLowerCase().includes('cetak') ||
-        (e.category || '').toLowerCase().includes('fotokopi')
-    )
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const breakdown = nonSalaryCategories.map((cat) => {
+      const matchedRecords = generalExpensesInMonth.filter((e) => {
+        const eCat = (e.category || '').trim().toLowerCase();
+        const target = cat.trim().toLowerCase();
+        return eCat === target;
+      });
 
-  const pantryExp = generalExpensesInMonth
-    .filter(
-      (e) =>
-        (e.category || '').toLowerCase().includes('konsumsi') ||
-        (e.category || '').toLowerCase().includes('pantry') ||
-        (e.category || '').toLowerCase().includes('snack')
-    )
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+      matchedRecords.forEach((e) => allocatedExpenseIds.add(e.id));
+      const amount = matchedRecords.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  // 4. Beban Pemasaran & Operasional Lainnya
-  const promoExp = generalExpensesInMonth
-    .filter(
-      (e) =>
-        (e.category || '').toLowerCase().includes('iklan') ||
-        (e.category || '').toLowerCase().includes('promosi') ||
-        (e.category || '').toLowerCase().includes('banner') ||
-        (e.category || '').toLowerCase().includes('brosur')
-    )
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+      return {
+        categoryName: cat,
+        amount,
+        count: matchedRecords.length,
+        records: matchedRecords,
+      };
+    });
 
-  const generalNonSalaryExpense = generalExpensesInMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
+    // Allocate any unassigned general expenses to "Lain-lain" / "Lainnya" or append
+    const unallocated = generalExpensesInMonth.filter((e) => !allocatedExpenseIds.has(e.id));
+    if (unallocated.length > 0) {
+      const unallocatedAmount = unallocated.reduce((sum, e) => sum + (e.amount || 0), 0);
+      const otherCategoryIndex = breakdown.findIndex(
+        (b) => b.categoryName.toLowerCase().includes('lain')
+      );
+      if (otherCategoryIndex >= 0) {
+        breakdown[otherCategoryIndex].amount += unallocatedAmount;
+        breakdown[otherCategoryIndex].count += unallocated.length;
+        breakdown[otherCategoryIndex].records.push(...unallocated);
+      } else {
+        breakdown.push({
+          categoryName: 'Lain-lain',
+          amount: unallocatedAmount,
+          count: unallocated.length,
+          records: unallocated,
+        });
+      }
+    }
+
+    return breakdown;
+  }, [configuredExpenseCategories, generalExpensesInMonth, settings]);
+
+  const generalNonSalaryExpense = expenseCategoryBreakdown.reduce((sum, item) => sum + item.amount, 0);
+
+  // Backward-compatible individual helpers for legacy references
+  const rentExpense = expenseCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('sewa') || b.categoryName.toLowerCase().includes('gedung'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const utilityExpense = expenseCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('listrik') || b.categoryName.toLowerCase().includes('internet') || b.categoryName.toLowerCase().includes('wifi') || b.categoryName.toLowerCase().includes('air'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const moduleExp = expenseCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('modul') || b.categoryName.toLowerCase().includes('atk') || b.categoryName.toLowerCase().includes('cetak') || b.categoryName.toLowerCase().includes('fotokopi'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const pantryExp = expenseCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('konsumsi') || b.categoryName.toLowerCase().includes('pantry') || b.categoryName.toLowerCase().includes('snack'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const promoExp = expenseCategoryBreakdown
+    .filter((b) => b.categoryName.toLowerCase().includes('iklan') || b.categoryName.toLowerCase().includes('promosi') || b.categoryName.toLowerCase().includes('banner') || b.categoryName.toLowerCase().includes('brosur'))
+    .reduce((sum, b) => sum + b.amount, 0);
+
   const otherExp = Math.max(
     0,
     generalNonSalaryExpense - (rentExpense + utilityExpense + moduleExp + pantryExp + promoExp)
@@ -508,30 +629,48 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
     }
   };
 
+  const annualExpenseColumns = useMemo(() => {
+    return configuredExpenseCategories.filter(
+      (c) => !isSystemExpenseCategory(c, settings)
+    );
+  }, [configuredExpenseCategories, settings]);
+
   const handleExportExcel = () => {
     if (activeMode === 'monthly') {
-      // Detailed monthly export
-      const monthlyRows = [
+      // Detailed monthly export using dynamic categories from database
+      const monthlyRows: Record<string, any>[] = [
         { 'KOMPONEN LAPORAN': '=== RINGKASAN EKSEKUTIF P&L ===', 'NILAI (RP)': '', 'KETERANGAN': `${targetMonthName} ${selectedYear}` },
         { 'KOMPONEN LAPORAN': '1. Total Pendapatan Operasional (Buku Kas Masuk)', 'NILAI (RP)': grandTotalMonthlyRevenueAccrual, 'KETERANGAN': 'Pendapatan SPP + Non-SPP' },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan SPP Siswa (Buku Kas)', 'NILAI (RP)': totalSppPaidCashBook, 'KETERANGAN': `${sppCashIncomesForMonth.length} Transaksi SPP (${totalSessionsCount} Sesi Hadir)` },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan Pendaftaran Siswa', 'NILAI (RP)': regFeeIncome, 'KETERANGAN': 'Registrasi Siswa Baru' },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan Modul & Buku Paket', 'NILAI (RP)': moduleIncome, 'KETERANGAN': 'Penjualan Modul' },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan Try Out & Ujian Simulasi', 'NILAI (RP)': tryOutIncome, 'KETERANGAN': 'Ujian Simulasi' },
-        { 'KOMPONEN LAPORAN': '   - Pendapatan Kas Masuk Lainnya', 'NILAI (RP)': otherNonSppIncome, 'KETERANGAN': 'Event / Workshop / Lain-lain' },
+        { 'KOMPONEN LAPORAN': `   - ${sppCategoryName}`, 'NILAI (RP)': totalSppPaidCashBook, 'KETERANGAN': `${sppCashIncomesForMonth.length} Transaksi SPP (${totalSessionsCount} Sesi Hadir)` },
+      ];
+
+      nonSppCategoryBreakdown.forEach((catItem) => {
+        monthlyRows.push({
+          'KOMPONEN LAPORAN': `   - ${catItem.categoryName}`,
+          'NILAI (RP)': catItem.amount,
+          'KETERANGAN': catItem.count > 0 ? `${catItem.count} Transaksi` : 'Kategori Database',
+        });
+      });
+
+      monthlyRows.push(
         { 'KOMPONEN LAPORAN': '2. Total Kas Masuk Riil (Cash Basis)', 'NILAI (RP)': totalCashIncomeMonth, 'KETERANGAN': 'Uang Masuk Kasir di Bulan Ini' },
         { 'KOMPONEN LAPORAN': '3. Total Beban Pengeluaran Operasional', 'NILAI (RP)': totalMonthlyExpenses, 'KETERANGAN': 'Total Seluruh Kas Keluar' },
-        { 'KOMPONEN LAPORAN': '   - Beban Gaji & Honor Tutor Pengajar', 'NILAI (RP)': totalSalaryExpense, 'KETERANGAN': `${tutorSalaryBreakdown.length} Tutor Pengajar` },
-        { 'KOMPONEN LAPORAN': '   - Beban Sewa Tempat / Gedung', 'NILAI (RP)': rentExpense, 'KETERANGAN': 'Sewa Fasilitas Belajar' },
-        { 'KOMPONEN LAPORAN': '   - Beban Listrik, Air & Internet WiFi', 'NILAI (RP)': utilityExpense, 'KETERANGAN': 'Utilitas Operasional' },
-        { 'KOMPONEN LAPORAN': '   - Beban Modul, ATK & Fotokopi', 'NILAI (RP)': moduleExp, 'KETERANGAN': 'Bahan Ajar & Kantor' },
-        { 'KOMPONEN LAPORAN': '   - Beban Konsumsi / Pantry', 'NILAI (RP)': pantryExp, 'KETERANGAN': 'Konsumsi Tutor & Siswa' },
-        { 'KOMPONEN LAPORAN': '   - Beban Promosi / Banner / Iklan', 'NILAI (RP)': promoExp, 'KETERANGAN': 'Pemasaran & Spanduk' },
-        { 'KOMPONEN LAPORAN': '   - Beban Operasional Lain-lain', 'NILAI (RP)': otherExp, 'KETERANGAN': 'Pemeliharaan & Kebersihan' },
+        { 'KOMPONEN LAPORAN': `   - Beban Pokok: ${salaryCategoryName}`, 'NILAI (RP)': totalSalaryExpense, 'KETERANGAN': `${tutorSalaryBreakdown.length} Tutor Pengajar` }
+      );
+
+      expenseCategoryBreakdown.forEach((catItem) => {
+        monthlyRows.push({
+          'KOMPONEN LAPORAN': `   - ${catItem.categoryName}`,
+          'NILAI (RP)': catItem.amount,
+          'KETERANGAN': catItem.count > 0 ? `${catItem.count} Transaksi` : 'Kategori Database',
+        });
+      });
+
+      monthlyRows.push(
         { 'KOMPONEN LAPORAN': '4. LABA BERSIH OPERASIONAL (NET PROFIT)', 'NILAI (RP)': monthlyAccrualNetProfit, 'KETERANGAN': `Margin Profit: ${profitMarginPercent}%` },
         { 'KOMPONEN LAPORAN': '5. ARUS KAS BERSIH (NET CASH FLOW)', 'NILAI (RP)': monthlyCashNetFlow, 'KETERANGAN': 'Kas Masuk Riil - Pengeluaran' },
-        { 'KOMPONEN LAPORAN': '6. Sisa Tagihan SPP Belum Tertagih (Piutang)', 'NILAI (RP)': totalUncollectedSpp, 'KETERANGAN': `Tingkat Pelunasan: ${collectionRate}%` },
-      ];
+        { 'KOMPONEN LAPORAN': '6. Sisa Tagihan SPP Belum Tertagih (Piutang)', 'NILAI (RP)': totalUncollectedSpp, 'KETERANGAN': `Tingkat Pelunasan: ${collectionRate}%` }
+      );
 
       // Sheet 2: Rincian SPP & Sesi per Siswa (Murni dari Buku Kas)
       const studentRows = Object.values(studentBreakdownMap)
@@ -590,43 +729,65 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
         `Laporan_P&L_Bulanan_${bimbelName.replace(/\s+/g, '_')}_${targetMonthName}_${selectedYear}`
       );
     } else {
-      // Annual 12-Month Export
-      const annualRows = annualPLData.map((d) => ({
-        'Bulan': d.monthName,
-        'Pendapatan Accrual (Rp)': d.accrualIncome,
-        'Kas Masuk Riil (Rp)': d.cashIncome,
-        'Beban Gaji Tutor (Rp)': d.tutorSalaryExpense,
-        'Beban Sewa Tempat (Rp)': d.rentExpense,
-        'Beban Listrik & Internet (Rp)': d.utilityExpense,
-        'Beban Modul & ATK (Rp)': d.moduleExpense,
-        'Beban Lain-lain (Rp)': d.otherExpense,
-        'Total Pengeluaran (Rp)': d.totalExpenses,
-        'Laba Bersih Accrual (Rp)': d.accrualNetProfit,
-        'Arus Kas Bersih (Rp)': d.cashNetFlow,
-      }));
+      // Annual 12-Month Export with dynamic database categories
+      const annualRows = annualPLData.map((d) => {
+        const rowObj: Record<string, any> = {
+          'Bulan': d.monthName,
+          'Pendapatan Accrual (Rp)': d.accrualIncome,
+          'Kas Masuk Riil (Rp)': d.cashIncome,
+          [`Beban ${salaryCategoryName} (Rp)`]: d.expensesByCategory?.[salaryCategoryName] ?? d.tutorSalaryExpense,
+        };
 
-      annualRows.push({
+        annualExpenseColumns.forEach((col) => {
+          rowObj[`Beban ${col} (Rp)`] = d.expensesByCategory?.[col] || 0;
+        });
+
+        rowObj['Total Pengeluaran (Rp)'] = d.totalExpenses;
+        rowObj['Laba Bersih Accrual (Rp)'] = d.accrualNetProfit;
+        rowObj['Arus Kas Bersih (Rp)'] = d.cashNetFlow;
+        return rowObj;
+      });
+
+      const totalRow: Record<string, any> = {
         'Bulan': `TOTAL TAHUNAN ${selectedYear} (YTD)`,
         'Pendapatan Accrual (Rp)': totalAnnualAccrualIncome,
         'Kas Masuk Riil (Rp)': totalAnnualCashIncome,
-        'Beban Gaji Tutor (Rp)': annualPLData.reduce((sum, d) => sum + d.tutorSalaryExpense, 0),
-        'Beban Sewa Tempat (Rp)': annualPLData.reduce((sum, d) => sum + d.rentExpense, 0),
-        'Beban Listrik & Internet (Rp)': annualPLData.reduce((sum, d) => sum + d.utilityExpense, 0),
-        'Beban Modul & ATK (Rp)': annualPLData.reduce((sum, d) => sum + d.moduleExpense, 0),
-        'Beban Lain-lain (Rp)': annualPLData.reduce((sum, d) => sum + d.otherExpense, 0),
-        'Total Pengeluaran (Rp)': totalAnnualExpenses,
-        'Laba Bersih Accrual (Rp)': totalAnnualAccrualNetProfit,
-        'Arus Kas Bersih (Rp)': totalAnnualCashNetFlow,
+        [`Beban ${salaryCategoryName} (Rp)`]: annualPLData.reduce(
+          (sum, d) => sum + (d.expensesByCategory?.[salaryCategoryName] ?? d.tutorSalaryExpense),
+          0
+        ),
+      };
+
+      annualExpenseColumns.forEach((col) => {
+        totalRow[`Beban ${col} (Rp)`] = annualPLData.reduce(
+          (sum, d) => sum + (d.expensesByCategory?.[col] || 0),
+          0
+        );
       });
 
-      // Sheet 2: Ringkasan Beban Tahunan
+      totalRow['Total Pengeluaran (Rp)'] = totalAnnualExpenses;
+      totalRow['Laba Bersih Accrual (Rp)'] = totalAnnualAccrualNetProfit;
+      totalRow['Arus Kas Bersih (Rp)'] = totalAnnualCashNetFlow;
+
+      annualRows.push(totalRow);
+
+      // Sheet 2: Ringkasan Beban Tahunan Berdasarkan Kategori Database
       const annualExpenseBreakdown = [
-        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Gaji & Honor Tutor', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.tutorSalaryExpense, 0) },
-        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Sewa Gedung / Fasilitas', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.rentExpense, 0) },
-        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Listrik, Air & Internet WiFi', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.utilityExpense, 0) },
-        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Modul, ATK & Fotokopi', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.moduleExpense, 0) },
-        { 'KATEGORI BEBAN OPERASIONAL': 'Beban Operasional Lainnya', 'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + d.otherExpense, 0) },
-        { 'KATEGORI BEBAN OPERASIONAL': 'TOTAL SELURUH BEBAN OPERASIONAL', 'TOTAL SETAHUN (RP)': totalAnnualExpenses },
+        {
+          'KATEGORI BEBAN OPERASIONAL': `Beban Pokok: ${salaryCategoryName}`,
+          'TOTAL SETAHUN (RP)': annualPLData.reduce(
+            (sum, d) => sum + (d.expensesByCategory?.[salaryCategoryName] ?? d.tutorSalaryExpense),
+            0
+          ),
+        },
+        ...annualExpenseColumns.map((col) => ({
+          'KATEGORI BEBAN OPERASIONAL': `Beban: ${col}`,
+          'TOTAL SETAHUN (RP)': annualPLData.reduce((sum, d) => sum + (d.expensesByCategory?.[col] || 0), 0),
+        })),
+        {
+          'KATEGORI BEBAN OPERASIONAL': 'TOTAL SELURUH BEBAN OPERASIONAL',
+          'TOTAL SETAHUN (RP)': totalAnnualExpenses,
+        },
       ];
 
       exportMultiSheetExcel(
@@ -792,6 +953,30 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Category Sync Notice with Database Settings */}
+      <div className="no-print bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5 text-slate-700">
+          <span className="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg shrink-0">
+            <Database className="w-3.5 h-3.5" />
+          </span>
+          <p>
+            <strong className="text-slate-900">Kategori P&L Otomatis:</strong> Pos rincian pendapatan & beban di laporan ini mengikuti kategori yang ditentukan di <em>Pengaturan Database</em> ({configuredIncomeCategories.length} kategori pemasukan, {configuredExpenseCategories.length} kategori pengeluaran).
+          </p>
+        </div>
+        {onNavigateToSettings && (
+          <button
+            type="button"
+            onClick={onNavigateToSettings}
+            className="inline-flex items-center gap-1.5 font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-slate-200 px-3 py-1.5 rounded-xl transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+            title="Kelola kategori kas masuk & pengeluaran di Pengaturan"
+          >
+            <Settings className="w-3.5 h-3.5 text-slate-500" />
+            <span>Kelola Kategori</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -995,27 +1180,37 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
 
                 {/* Non-SPP (Layanan Tambahan) */}
                 <div className="space-y-2">
-                  <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                    Pendapatan Non-SPP / Layanan Tambahan
-                  </h5>
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                      Pendapatan Non-SPP / Layanan Tambahan
+                    </h5>
+                    {onNavigateToSettings && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToSettings}
+                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                        title="Atur kategori kas masuk di database settings"
+                      >
+                        <Settings className="w-3 h-3" />
+                        <span>Kategori Database</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Biaya Pendaftaran / Registrasi Siswa:</span>
-                      <span className="font-bold text-slate-900 font-mono">{formatRupiah(regFeeIncome)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Modul & Buku Paket Belajar:</span>
-                      <span className="font-bold text-slate-900 font-mono">{formatRupiah(moduleIncome)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Try Out & Ujian Simulasi:</span>
-                      <span className="font-bold text-slate-900 font-mono">{formatRupiah(tryOutIncome)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Penerimaan Event / Kas Masuk Lainnya:</span>
-                      <span className="font-bold text-slate-900 font-mono">{formatRupiah(otherNonSppIncome)}</span>
-                    </div>
+                    {nonSppCategoryBreakdown.map((item) => (
+                      <div key={item.categoryName} className="flex items-center justify-between">
+                        <span className="text-slate-600 flex items-center gap-1.5">
+                          <span>{item.categoryName}:</span>
+                          {item.count > 0 && (
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              ({item.count} transaksi)
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-bold text-slate-900 font-mono">{formatRupiah(item.amount)}</span>
+                      </div>
+                    ))}
                     <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-black text-emerald-800">
                       <span>Subtotal Pendapatan Non-SPP:</span>
                       <span className="font-mono">{formatRupiah(totalNonSppIncome)}</span>
@@ -1152,44 +1347,40 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                 </div>
               </div>
 
-              {/* 2. Beban Fasilitas, Utilitas, Pembelajaran & Promosi */}
+              {/* 2. Beban Operasional Lembaga Berdasarkan Kategori Database */}
               <div className="space-y-3">
-                <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <Building className="w-4 h-4 text-indigo-600" />
-                  Rincian Beban Operasional Lembaga
-                </h5>
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Building className="w-4 h-4 text-indigo-600" />
+                    Rincian Beban Operasional Lembaga
+                  </h5>
+                  {onNavigateToSettings && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToSettings}
+                      className="text-[11px] text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                      title="Atur kategori pengeluaran di database settings"
+                    >
+                      <Settings className="w-3 h-3" />
+                      <span>Kategori Database</span>
+                    </button>
+                  )}
+                </div>
 
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs">
-                  {/* Fasilitas & Sewa */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Sewa Gedung / Ruang Kelas:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(rentExpense)}</span>
-                  </div>
-                  {/* Listrik & WiFi */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Listrik, Air & Internet (WiFi):</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(utilityExpense)}</span>
-                  </div>
-                  {/* Modul & ATK */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Modul, ATK & Fotokopi Lembar Belajar:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(moduleExp)}</span>
-                  </div>
-                  {/* Konsumsi / Pantry */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Konsumsi / Pantry Siswa & Tutor:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(pantryExp)}</span>
-                  </div>
-                  {/* Promosi / Spanduk */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Pemasaran / Spanduk / Brosur Promosi:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(promoExp)}</span>
-                  </div>
-                  {/* Lainnya */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Pemeliharaan, Kebersihan & Beban Lain:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formatRupiah(otherExp)}</span>
-                  </div>
+                  {expenseCategoryBreakdown.map((item) => (
+                    <div key={item.categoryName} className="flex items-center justify-between">
+                      <span className="text-slate-600 flex items-center gap-1.5">
+                        <span>{item.categoryName}:</span>
+                        {item.count > 0 && (
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            ({item.count} transaksi)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-bold text-slate-900 font-mono">{formatRupiah(item.amount)}</span>
+                    </div>
+                  ))}
 
                   <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between font-black text-rose-700">
                     <span>Subtotal Beban Non-Tutor:</span>
@@ -1252,26 +1443,20 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                   </tr>
                   <tr>
                     <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">
-                      • Pendapatan SPP / Iuran Belajar Siswa ({sppCashIncomesForMonth.length} Transaksi Kas Masuk)
+                      • {sppCategoryName} ({sppCashIncomesForMonth.length} Transaksi Kas Masuk)
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(totalSppPaidCashBook)}</td>
                     <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
                   </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Biaya Pendaftaran / Registrasi Siswa Baru</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(regFeeIncome)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Penjualan Modul & Buku Paket Siswa</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(moduleIncome)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Pendapatan Try Out & Layanan Tambahan Lainnya</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(tryOutIncome + otherNonSppIncome)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
+                  {nonSppCategoryBreakdown.map((item) => (
+                    <tr key={item.categoryName}>
+                      <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">
+                        • {item.categoryName} {item.count > 0 ? `(${item.count} Transaksi)` : ''}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(item.amount)}</td>
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
+                    </tr>
+                  ))}
                   <tr className={`font-black border-t ${
                     isMonochrome
                       ? 'bg-white text-slate-950 border-slate-900 border-b print:border-black print:text-black'
@@ -1294,36 +1479,20 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                   </tr>
                   <tr>
                     <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">
-                      • Beban Pokok: Honor / Gaji Tutor Pengajar ({tutorSalaryBreakdown.length} Tutor)
+                      • Beban Pokok: {salaryCategoryName} ({tutorSalaryBreakdown.length} Tutor)
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(totalSalaryExpense)}</td>
                     <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
                   </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Beban Sewa Tempat / Gedung Pembelajaran</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(rentExpense)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Beban Utilitas (Listrik, Air & Internet WiFi)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(utilityExpense)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Beban Modul, Fotokopi & ATK Kantor</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(moduleExp)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Beban Konsumsi & Pantry</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(pantryExp)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">• Beban Pemasaran, Pemeliharaan & Operasional Lain</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(promoExp + otherExp)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
-                  </tr>
+                  {expenseCategoryBreakdown.map((item) => (
+                    <tr key={item.categoryName}>
+                      <td className="py-2 px-6 font-semibold text-slate-800 print:text-black">
+                        • {item.categoryName} {item.count > 0 ? `(${item.count} Transaksi)` : ''}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-700 print:text-black">{formatRupiah(item.amount)}</td>
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-slate-900 print:text-black"></td>
+                    </tr>
+                  ))}
                   <tr className={`font-black border-t ${
                     isMonochrome
                       ? 'bg-white text-slate-950 border-slate-900 border-b print:border-black print:text-black'
@@ -1517,11 +1686,19 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                     }`}>
                       Kas Riil Masuk
                     </th>
-                    <th className="py-3.5 px-3 text-right text-slate-700 print:text-black">Gaji Tutor</th>
-                    <th className="py-3.5 px-3 text-right text-slate-700 print:text-black">Sewa Gedung</th>
-                    <th className="py-3.5 px-3 text-right text-slate-700 print:text-black">Utilitas</th>
-                    <th className="py-3.5 px-3 text-right text-slate-700 print:text-black">Modul/ATK</th>
-                    <th className="py-3.5 px-3 text-right text-slate-700 border-r border-slate-300 print:border-black print:text-black">Lainnya</th>
+                    <th className="py-3.5 px-3 text-right text-slate-700 print:text-black">
+                      {salaryCategoryName}
+                    </th>
+                    {annualExpenseColumns.map((col, idx) => (
+                      <th
+                        key={col}
+                        className={`py-3.5 px-3 text-right text-slate-700 print:text-black ${
+                          idx === annualExpenseColumns.length - 1 ? 'border-r border-slate-300 print:border-black' : ''
+                        }`}
+                      >
+                        {col}
+                      </th>
+                    ))}
                     <th className={`py-3.5 px-3 text-right font-bold border-r border-slate-300 print:border-black ${
                       isMonochrome ? 'text-slate-950 print:text-black' : 'text-rose-700 print:text-black'
                     }`}>
@@ -1554,20 +1731,18 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                         {formatRupiah(row.cashIncome)}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-slate-700 print:text-black">
-                        {formatRupiah(row.tutorSalaryExpense)}
+                        {formatRupiah(row.expensesByCategory?.[salaryCategoryName] ?? row.tutorSalaryExpense)}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 print:text-black">
-                        {formatRupiah(row.rentExpense)}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 print:text-black">
-                        {formatRupiah(row.utilityExpense)}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 print:text-black">
-                        {formatRupiah(row.moduleExpense)}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 border-r border-slate-200 print:border-black print:text-black">
-                        {formatRupiah(row.otherExpense)}
-                      </td>
+                      {annualExpenseColumns.map((col, idx) => (
+                        <td
+                          key={col}
+                          className={`py-3 px-3 text-right font-mono text-slate-700 print:text-black ${
+                            idx === annualExpenseColumns.length - 1 ? 'border-r border-slate-200 print:border-black' : ''
+                          }`}
+                        >
+                          {formatRupiah(row.expensesByCategory?.[col] || 0)}
+                        </td>
+                      ))}
                       <td className={`py-3 px-3 text-right font-mono font-bold border-r border-slate-200 print:border-black print:text-black ${
                         isMonochrome ? 'text-slate-900' : 'text-rose-600'
                       }`}>
@@ -1619,28 +1794,26 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
                     <td className={`py-3.5 px-3 text-right font-mono ${
                       isMonochrome ? 'text-slate-950 print:text-black' : 'text-slate-300 print:text-black'
                     }`}>
-                      {formatRupiah(annualPLData.reduce((sum, d) => sum + d.tutorSalaryExpense, 0))}
+                      {formatRupiah(annualPLData.reduce((sum, d) => sum + (d.expensesByCategory?.[salaryCategoryName] ?? d.tutorSalaryExpense), 0))}
                     </td>
-                    <td className={`py-3.5 px-3 text-right font-mono ${
-                      isMonochrome ? 'text-slate-950 print:text-black' : 'text-slate-300 print:text-black'
-                    }`}>
-                      {formatRupiah(annualPLData.reduce((sum, d) => sum + d.rentExpense, 0))}
-                    </td>
-                    <td className={`py-3.5 px-3 text-right font-mono ${
-                      isMonochrome ? 'text-slate-950 print:text-black' : 'text-slate-300 print:text-black'
-                    }`}>
-                      {formatRupiah(annualPLData.reduce((sum, d) => sum + d.utilityExpense, 0))}
-                    </td>
-                    <td className={`py-3.5 px-3 text-right font-mono ${
-                      isMonochrome ? 'text-slate-950 print:text-black' : 'text-slate-300 print:text-black'
-                    }`}>
-                      {formatRupiah(annualPLData.reduce((sum, d) => sum + d.moduleExpense, 0))}
-                    </td>
-                    <td className={`py-3.5 px-3 text-right font-mono border-r ${
-                      isMonochrome ? 'text-slate-950 border-slate-900 print:border-black print:text-black' : 'text-slate-300 border-slate-700 print:text-black print:border-black'
-                    }`}>
-                      {formatRupiah(annualPLData.reduce((sum, d) => sum + d.otherExpense, 0))}
-                    </td>
+                    {annualExpenseColumns.map((col, idx) => (
+                      <td
+                        key={col}
+                        className={`py-3.5 px-3 text-right font-mono ${
+                          idx === annualExpenseColumns.length - 1 ? 'border-r ' : ''
+                        }${
+                          isMonochrome
+                            ? idx === annualExpenseColumns.length - 1
+                              ? 'text-slate-950 border-slate-900 print:border-black print:text-black'
+                              : 'text-slate-950 print:text-black'
+                            : idx === annualExpenseColumns.length - 1
+                            ? 'text-slate-300 border-slate-700 print:text-black print:border-black'
+                            : 'text-slate-300 print:text-black'
+                        }`}
+                      >
+                        {formatRupiah(annualPLData.reduce((sum, d) => sum + (d.expensesByCategory?.[col] || 0), 0))}
+                      </td>
+                    ))}
                     <td className={`py-3.5 px-3 text-right font-mono border-r ${
                       isMonochrome ? 'text-slate-950 border-slate-900 print:border-black print:text-black' : 'text-rose-400 border-slate-700 print:text-black print:border-black'
                     }`}>
