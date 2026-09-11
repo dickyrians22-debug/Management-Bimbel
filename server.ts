@@ -11,9 +11,9 @@ async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production' || isCompiled;
   const isDev = !isProduction;
 
-  // In development, the sandbox reverse-proxy requires binding to 3000.
-  // In production (Cloud Run), the container must listen on process.env.PORT (defaults to 8080).
-  const PORT = isProduction ? (process.env.PORT ? parseInt(process.env.PORT, 10) : 8080) : 3000;
+  // Port 3000 is the ONLY externally accessible port routed by the container reverse proxy.
+  // Never bind to 8080 or read process.env.PORT because 8080 is reserved for nginx.
+  const PORT = 3000;
 
   app.use(express.json());
 

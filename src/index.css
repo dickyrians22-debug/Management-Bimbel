@@ -16,6 +16,11 @@
     margin: 4mm 4mm;
   }
 
+  @page landscape-sheet {
+    size: A4 landscape;
+    margin: 4mm 4mm;
+  }
+
   body {
     background-color: white !important;
     color: black !important;
@@ -27,44 +32,53 @@
     display: none !important;
   }
 
-  /* Ensure modal backdrops and overlay containers are completely transparent and unconstrained in print */
-  .fixed.inset-0,
-  div[class*="backdrop-blur"],
-  div[class*="bg-slate-950/"],
-  div[class*="bg-slate-900/"] {
-    background: transparent !important;
-    background-color: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Ensure print document containers and printable cards have pure white background and no dark outer shadows/borders */
-  #receipt-modal-container,
-  #registration-receipt-modal-card,
-  #printable-registration-receipt,
-  #receipt-printable-content,
-  #printable-salary-slip,
-  #printable-student-qr-card,
-  #printable-pl-statement {
-    background-color: white !important;
-    background: white !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
   .print-only {
     display: block !important;
   }
 
+  /* Receipt Modal Print Isolation: Hide background content when modal receipt is printed */
+  body.modal-receipt-open main,
+  body.modal-receipt-open nav,
+  body.modal-receipt-open aside,
+  body.modal-receipt-open header {
+    display: none !important;
+  }
+
+  body.modal-receipt-open .modal-receipt-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.modal-receipt-open #receipt-modal-container {
+    box-shadow: none !important;
+    border: 1.5px solid #1e293b !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 8px !important;
+    page-break-inside: avoid !important;
+  }
+
+  body.modal-receipt-open #registration-receipt-modal-card {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
   /* Mode A & Mode B full A4 sheets & Registration Receipt */
   #printable-report-mode-a,
-  #printable-group-sheet,
-  #printable-registration-receipt,
-  #printable-salary-slip,
-  #printable-pl-statement {
+  #printable-registration-receipt {
     width: 100% !important;
     max-width: 100% !important;
     min-height: auto !important;
@@ -73,6 +87,19 @@
     border: none !important;
     box-shadow: none !important;
     page-break-after: auto;
+  }
+
+  #printable-group-sheet {
+    page: landscape-sheet;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: auto;
+    overflow: visible !important;
   }
 
   table {
@@ -106,13 +133,13 @@
   /* Full A4 Page container for 1/4 pocket cards (4 cards per A4 page) */
   .a4-page-grid,
   .a4-sheet-pocket-page {
-    width: 202mm !important;
-    max-width: 202mm !important;
-    height: 288mm !important;
-    max-height: 288mm !important;
-    min-height: 288mm !important;
+    width: 100% !important;
+    max-width: 192mm !important;
+    height: 278mm !important;
+    max-height: 278mm !important;
+    min-height: 278mm !important;
     margin: 0 auto !important;
-    padding: 1.5mm !important;
+    padding: 1mm !important;
     box-sizing: border-box !important;
     page-break-after: always !important;
     break-after: page !important;
@@ -128,10 +155,10 @@
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     grid-template-rows: repeat(2, 1fr) !important;
-    gap: 1.5mm !important;
+    gap: 1mm !important;
     flex: 1 1 auto !important;
-    height: calc(100% - 6mm) !important;
-    max-height: calc(100% - 6mm) !important;
+    height: calc(100% - 5mm) !important;
+    max-height: calc(100% - 5mm) !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     overflow: hidden !important;
@@ -139,9 +166,9 @@
 
   .a4-sheet-pocket-page .student-pocket-card {
     width: 100% !important;
-    max-width: 98mm !important;
+    max-width: 94mm !important;
     height: 100% !important;
-    max-height: 135mm !important;
+    max-height: 132mm !important;
     min-height: 0 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;

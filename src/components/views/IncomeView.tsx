@@ -68,6 +68,23 @@ export const IncomeView: React.FC<IncomeViewProps> = ({
     return Array.from(set);
   }, [settings?.incomeCategories, incomes]);
 
+  // Available Payment Methods from Settings + Incomes
+  const availablePaymentMethods = useMemo(() => {
+    const set = new Set<string>();
+    if (settings?.paymentMethods) {
+      settings.paymentMethods.forEach((m) => {
+        if (m && m.trim()) set.add(m.trim());
+      });
+    }
+    incomes.forEach((i) => {
+      if (i.paymentMethod && i.paymentMethod.trim()) set.add(i.paymentMethod.trim());
+    });
+    if (set.size === 0) {
+      ['Tunai', 'Transfer BCA', 'Transfer Mandiri', 'Transfer BRI', 'QRIS'].forEach((m) => set.add(m));
+    }
+    return Array.from(set);
+  }, [settings?.paymentMethods, incomes]);
+
   // Filtered Incomes
   const filteredIncomes = incomes
     .filter((i) => {
@@ -250,13 +267,11 @@ export const IncomeView: React.FC<IncomeViewProps> = ({
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
               <option value="All">Semua Metode Bayar</option>
-              <option value="Tunai">Tunai</option>
-              <option value="Transfer BCA">Transfer BCA</option>
-              <option value="Transfer Mandiri">Transfer Mandiri</option>
-              <option value="Transfer BRI">Transfer BRI</option>
-              <option value="Transfer BNI">Transfer BNI</option>
-              <option value="QRIS">QRIS</option>
-              <option value="GoPay / OVO / Dana">GoPay / OVO / Dana</option>
+              {availablePaymentMethods.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Printer, CheckCircle, GraduationCap, Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { IncomeRecord, Student, BimbelSettings } from '../../types';
 import { formatRupiah, getMonthNameIndo, formatDateIndo } from '../../utils/storage';
-import { exportElementToPng } from '../../utils/exportUtils';
+import { exportElementToPng, printElement } from '../../utils/exportUtils';
 import { BimbelLogo } from '../common/BimbelLogo';
 
 interface ReceiptModalProps {
@@ -23,6 +23,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const [isExportingImage, setIsExportingImage] = useState(false);
   const receiptCardRef = useRef<HTMLDivElement>(null);
 
+  // Toggle modal-receipt-open on body for print isolation
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add('modal-receipt-open');
+    return () => {
+      document.body.classList.remove('modal-receipt-open');
+    };
+  }, [isOpen]);
+
   // Close modal on Escape key press
   useEffect(() => {
     if (!isOpen) return;
@@ -38,7 +47,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (receiptCardRef.current) {
+      printElement(
+        receiptCardRef.current,
+        `Kwitansi_${income.receiptNumber || 'Bimbel_Sigma'}`
+      );
+    } else {
+      window.print();
+    }
   };
 
   const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
@@ -60,12 +76,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in cursor-pointer print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible"
+      className="modal-receipt-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in cursor-pointer"
       onClick={() => onClose?.()}
     >
       <div
         id="receipt-modal-container"
-        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 cursor-default print:border-none print:shadow-none print:my-0 print:max-w-full"
+        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Topbar (Hidden when printing) */}

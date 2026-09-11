@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ProspectiveStudent, BimbelSettings } from '../../types';
 import { formatDateIndo } from '../../utils/storage';
-import { exportElementToPng } from '../../utils/exportUtils';
+import { exportElementToPng, printElement } from '../../utils/exportUtils';
 import { BimbelLogo } from '../common/BimbelLogo';
 import { sendWhatsAppDirect } from '../../utils/whatsapp';
 
@@ -43,6 +43,15 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
   const [isMonochrome, setIsMonochrome] = useState<boolean>(true); // Default: Hitam Putih (Hemat Tinta)
   const receiptContainerRef = useRef<HTMLDivElement>(null);
 
+  // Toggle modal-receipt-open on body for print isolation
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add('modal-receipt-open');
+    return () => {
+      document.body.classList.remove('modal-receipt-open');
+    };
+  }, [isOpen]);
+
   // Close modal on Escape key press
   useEffect(() => {
     if (!isOpen) return;
@@ -58,7 +67,15 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
   if (!isOpen || !prospectiveStudent) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (receiptContainerRef.current) {
+      const studentName = prospectiveStudent?.studentName ? prospectiveStudent.studentName.replace(/\s+/g, '_') : 'Siswa';
+      printElement(
+        receiptContainerRef.current,
+        `Bukti_Pendaftaran_${studentName}_${prospectiveStudent?.registrationNumber || ''}`
+      );
+    } else {
+      window.print();
+    }
   };
 
   const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
@@ -128,12 +145,12 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200 print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible"
+      className="modal-receipt-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
         id="registration-receipt-modal-card"
-        className="w-full max-w-3xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden my-4 cursor-default relative flex flex-col max-h-[92vh] print:bg-white print:border-none print:shadow-none print:my-0 print:max-w-full print:max-h-none"
+        className="w-full max-w-3xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden my-4 cursor-default relative flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Control Bar (Hidden When Printing) */}
@@ -229,7 +246,7 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
         </div>
 
         {/* Scrollable Document Preview Container */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-200/90 flex justify-center items-start print:bg-transparent print:p-0 print:overflow-visible">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-200/90 flex justify-center items-start">
           <div
             id="printable-registration-receipt"
             ref={receiptContainerRef}

@@ -647,6 +647,16 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* DYNAMIC PRINT CSS: Force Landscape on Mode B, Portrait on Mode A / C */}
+      <style>{`
+        @media print {
+          @page {
+            size: ${activeMode === 'mode-b' ? 'A4 landscape' : 'A4 portrait'} !important;
+            margin: 4mm 4mm !important;
+          }
+        }
+      `}</style>
+
       {/* Control Panel (Hidden When Printing) */}
       <div className="no-print bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
         {/* Top Title & Print Button */}
@@ -714,12 +724,18 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
               }`}
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF (A4)</span>
+              <span>
+                {activeMode === 'mode-b'
+                  ? 'Cetak / Simpan PDF (A4 Landscape)'
+                  : modeALayout === 'pocket-card-sheet-4'
+                  ? 'Cetak / Simpan PDF (Massal 4 Siswa)'
+                  : 'Cetak / Simpan PDF (A4)'}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* PRINT THEME SWITCHER (Ink-Saver B&W vs Color) */}
+        {/* PRINT THEME SWITCHER (Ink-Saver B&W vs Color) & GUIDANCE */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs">
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-bold text-slate-800">Format Warna Cetak:</span>
@@ -757,6 +773,29 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
               ? '✓ Mode Hemat Tinta Aktif: Tanpa blok warna/gradien pekat, hemat toner & kertas rapi.'
               : 'Mode Berwarna: Menggunakan aksen warna visual penuh.'}
           </p>
+        </div>
+
+        {/* PRINT LAYOUT GUIDANCE BANNER */}
+        <div className="flex items-center gap-3 p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs text-indigo-950">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Printer className="w-4 h-4" />
+          </div>
+          <div className="text-[11px] leading-relaxed">
+            <span className="font-bold text-indigo-900">Petunjuk Cetak / Simpan PDF Presisi:</span>{' '}
+            {activeMode === 'mode-b' ? (
+              <span>
+                Lembar Rekapitulasi Presensi otomatis dikonfigurasi dalam mode <strong>A4 Landscape (Mendatar)</strong> agar seluruh 31 hari dan 6 kolom rekap tidak terpotong ke kanan. Pada dialog cetak browser, pastikan <em>Layout: Landscape</em> dan centang <em>Background graphics</em>.
+              </span>
+            ) : modeALayout === 'pocket-card-sheet-4' ? (
+              <span>
+                Cetak Massal 4 Kartu Saku otomatis dalam format <strong>A4 Portrait (Tegak)</strong> dengan margin aman 192mm sehingga 4 kuadran tercetak utuh tanpa terpotong di tepi kanan/bawah kertas.
+              </span>
+            ) : (
+              <span>
+                Format standar dokumen A4 Portrait resmi. Pastikan opsi <em>Background graphics</em> dicentang pada browser Anda.
+              </span>
+            )}
+          </div>
         </div>
 
         {/* MODE TABS SELECTION (Only visible for admin/owner/tutor - hidden for student) */}
@@ -1246,7 +1285,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
       {/* ========================================================================= */}
       {/* PRINTABLE CONTAINER (Rendered according to activeMode & modeALayout)       */}
       {/* ========================================================================= */}
-      <div className="bg-slate-200 p-2 sm:p-6 md:p-8 rounded-3xl shadow-inner overflow-x-auto print:bg-white print:p-0 print:shadow-none w-full">
+      <div className="bg-slate-200 p-2 sm:p-6 md:p-8 rounded-3xl shadow-inner overflow-x-auto print:bg-white print:p-0 print:m-0 print:shadow-none print:overflow-visible w-full">
         {/* ========================================================================= */}
         {/* MODE A: FULL A4 COMPLETE STUDENT REPORT (NO 6 ROWS LIMIT)                 */}
         {/* ========================================================================= */}
@@ -1672,7 +1711,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                   }`}
                 >
                   {/* Sheet Action Bar (No-print) */}
-                  <div className="no-print w-[200mm] min-w-[200mm] max-w-[200mm] mb-2 px-1 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="no-print w-[194mm] min-w-[194mm] max-w-[194mm] mb-2 px-1 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-slate-800 bg-white border border-slate-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
                         <Layers className="w-3.5 h-3.5 text-indigo-600" />
@@ -1706,10 +1745,10 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Sheet Element: Exactly 200mm wide, start at left (x = 0) on mobile so it is 100% visible, smoothly scrollable to the right */}
+                  {/* Sheet Element: 194mm wide safe printable width, fits standard A4 portrait printers without right cutoff */}
                   <div
                     id={`printable-pocket-sheet-${pageIdx}`}
-                    className="a4-sheet-pocket-page bg-white shadow-2xl print:shadow-none w-[200mm] min-w-[200mm] max-w-[200mm] h-[287mm] max-h-[287mm] min-h-[287mm] p-2 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-1 font-sans break-after-page my-1 print:my-0 relative box-border overflow-hidden shrink-0"
+                    className="a4-sheet-pocket-page bg-white shadow-2xl print:shadow-none w-[194mm] min-w-[194mm] max-w-[194mm] print:w-full print:max-w-[192mm] h-[280mm] max-h-[280mm] min-h-[280mm] print:h-[278mm] print:max-h-[278mm] print:min-h-[278mm] p-2 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none print:p-1 font-sans break-after-page my-1 print:my-0 relative box-border overflow-hidden shrink-0"
                   >
                     {/* Page Sheet Header (No-print for preview info) */}
                     <div className="no-print border-b border-slate-200 pb-1.5 mb-1.5 flex items-center justify-between text-xs text-slate-500">
@@ -1780,7 +1819,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                       {Array.from({ length: 4 - pageStudents.length }).map((_, i) => (
                         <div
                           key={`empty-slot-${i}`}
-                          className="pocket-card-quadrant w-full h-full max-w-[98mm] min-h-[124mm] max-h-[133mm] border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs p-3 print:border-slate-300 box-border"
+                          className="pocket-card-quadrant w-full h-full max-w-[94mm] min-h-[120mm] max-h-[132mm] border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs p-3 print:border-slate-300 box-border"
                         >
                           <Scissors className="w-4 h-4 text-slate-300 mb-1" />
                           <span className="text-[9px] italic">Slot Kosong (Sisa Kuadran A4)</span>
@@ -1811,13 +1850,13 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
         {activeMode === 'mode-b' && (
           <div
             id="printable-group-sheet"
-            className="bg-white shadow-2xl print:shadow-none w-full min-w-[280mm] max-w-[297mm] min-h-[210mm] p-6 sm:p-8 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none font-sans text-xs leading-relaxed shrink-0"
+            className="bg-white shadow-2xl print:shadow-none w-full min-w-[280mm] max-w-[297mm] print:min-w-0 print:max-w-none print:w-full min-h-[210mm] print:min-h-0 p-6 sm:p-8 print:p-2 text-slate-800 flex flex-col justify-between border border-slate-300 print:border-none font-sans text-xs leading-relaxed shrink-0 print:m-0 box-border"
           >
             <div>
               {/* Kop Surat Resmi Bimbel */}
-              <div className="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between">
+              <div className="border-b-2 border-slate-900 pb-3 mb-3 print:pb-1.5 print:mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-2xl font-heading overflow-hidden ${
+                  <div className={`w-12 h-12 print:w-9 print:h-9 rounded-xl flex items-center justify-center font-black text-2xl print:text-lg font-heading overflow-hidden ${
                     isMonochrome
                       ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
                       : 'bg-indigo-950 text-white print:bg-white print:border-2 print:border-black print:text-black'
@@ -1825,80 +1864,80 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                     <BimbelLogo settings={settings} />
                   </div>
                   <div>
-                    <h1 className={`text-xl font-extrabold font-heading tracking-tight ${
+                    <h1 className={`text-xl print:text-base font-extrabold font-heading tracking-tight ${
                       isMonochrome ? 'text-slate-950 print:text-black' : 'text-indigo-950 print:text-black'
                     }`}>
                       {bimbelName}
                     </h1>
-                    <p className={`text-xs font-bold uppercase tracking-wide ${
+                    <p className={`text-xs print:text-[10px] font-bold uppercase tracking-wide ${
                       isMonochrome ? 'text-slate-700 print:text-black' : 'text-amber-700 print:text-black'
                     }`}>
                       {bimbelTagline}
                     </p>
-                    <p className="text-[10px] text-slate-500 print:text-slate-700">
+                    <p className="text-[10px] print:text-[8.5px] text-slate-500 print:text-slate-700">
                       {bimbelAddress} • Telp/WA: {bimbelPhone}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider inline-block ${
+                  <span className={`px-3 py-1 print:px-2 print:py-0.5 rounded-lg text-xs print:text-[10px] font-extrabold uppercase tracking-wider inline-block ${
                     isMonochrome
                       ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
                       : 'bg-emerald-600 text-white shadow-sm print:bg-white print:border-2 print:border-black print:text-black'
                   }`}>
                     REKAPITULASI PRESENSI SISWA (BULANAN)
                   </span>
-                  <p className="text-xs font-bold text-slate-800 mt-1">
+                  <p className="text-xs print:text-[10px] font-bold text-slate-800 mt-1 print:mt-0.5">
                     Periode: {MONTH_NAMES_ID[selectedMonth - 1]} {selectedYear}
                   </p>
                 </div>
               </div>
 
               {/* Info Kriteria Filter */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-300 text-xs mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 print:gap-1 bg-slate-50 p-2.5 print:p-1.5 rounded-xl border border-slate-300 text-xs print:text-[9px] mb-3 print:mb-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Tingkat / Jenjang</span>
-                  <p className="font-bold text-slate-900 text-xs">{matrixFilterLevel === 'Semua' ? 'Semua Jenjang (SD/SMP/SMA)' : matrixFilterLevel}</p>
+                  <span className="text-[10px] print:text-[7.5px] font-bold text-slate-500 uppercase">Tingkat / Jenjang</span>
+                  <p className="font-bold text-slate-900 text-xs print:text-[9px]">{matrixFilterLevel === 'Semua' ? 'Semua Jenjang (SD/SMP/SMA)' : matrixFilterLevel}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Tipe Bimbingan</span>
-                  <p className="font-bold text-slate-900 text-xs">{matrixFilterClassType === 'Semua' ? 'Semua (Privat & Grup)' : matrixFilterClassType}</p>
+                  <span className="text-[10px] print:text-[7.5px] font-bold text-slate-500 uppercase">Tipe Bimbingan</span>
+                  <p className="font-bold text-slate-900 text-xs print:text-[9px]">{matrixFilterClassType === 'Semua' ? 'Semua (Privat & Grup)' : matrixFilterClassType}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Tutor Pembimbing</span>
-                  <p className="font-bold text-slate-900 text-xs truncate">{matrixFilterTutor === 'Semua' ? 'Semua Tutor' : matrixFilterTutor}</p>
+                  <span className="text-[10px] print:text-[7.5px] font-bold text-slate-500 uppercase">Tutor Pembimbing</span>
+                  <p className="font-bold text-slate-900 text-xs print:text-[9px] truncate">{matrixFilterTutor === 'Semua' ? 'Semua Tutor' : matrixFilterTutor}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Jumlah Siswa Terdata</span>
-                  <p className="font-bold text-emerald-800 text-xs">{filteredMatrixStudents.length} Siswa Terdaftar</p>
+                  <span className="text-[10px] print:text-[7.5px] font-bold text-slate-500 uppercase">Jumlah Siswa Terdata</span>
+                  <p className="font-bold text-emerald-800 text-xs print:text-[9px]">{filteredMatrixStudents.length} Siswa Terdaftar</p>
                 </div>
               </div>
 
               {/* TABEL MATRIKS PRESENSI TGL 1-30/31 */}
-              <div className="mb-4 overflow-x-auto">
-                <table className="w-full border-collapse border border-slate-400 text-[10px]">
+              <div className="mb-3 print:mb-1.5 overflow-x-auto print:overflow-visible">
+                <table className="w-full border-collapse border border-slate-400 text-[10px] print:text-[8px] print:leading-tight">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-400 text-slate-700 font-bold">
-                      <th className="py-1.5 px-1 border-r border-slate-300 w-7 text-center" rowSpan={2}>No</th>
-                      <th className="py-1.5 px-1.5 border-r border-slate-300 w-16 text-left" rowSpan={2}>NIS</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300 min-w-[140px] text-left" rowSpan={2}>Nama Siswa</th>
-                      <th className="py-1.5 px-1.5 border-r border-slate-300 w-16 text-center" rowSpan={2}>Kelas</th>
-                      <th className="py-1.5 px-1.5 border-r border-slate-300 w-14 text-center" rowSpan={2}>Tipe</th>
+                      <th className="py-1.5 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-7 print:w-5 text-center text-[10px] print:text-[8px]" rowSpan={2}>No</th>
+                      <th className="py-1.5 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 w-16 print:w-11 text-left text-[10px] print:text-[8px]" rowSpan={2}>NIS</th>
+                      <th className="py-1.5 px-2 print:py-0.5 print:px-1 border-r border-slate-300 min-w-[130px] print:min-w-[90px] print:max-w-[110px] text-left text-[10px] print:text-[8px]" rowSpan={2}>Nama Siswa</th>
+                      <th className="py-1.5 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 w-14 print:w-10 text-center text-[10px] print:text-[8px]" rowSpan={2}>Kelas</th>
+                      <th className="py-1.5 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 w-14 print:w-9 text-center text-[10px] print:text-[8px]" rowSpan={2}>Tipe</th>
                       
                       {/* Tanggal 1 s.d. 30/31 Header */}
-                      <th className="py-1 px-1 border-r border-slate-300 text-center bg-indigo-50/70" colSpan={daysInMonth}>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center bg-indigo-50/70 print:bg-slate-100 print:text-[8px]" colSpan={daysInMonth}>
                         Tanggal Pembelajaran (Bulan {MONTH_NAMES_ID[selectedMonth - 1]} {selectedYear})
                       </th>
 
                       {/* Rekapitulasi Kolom */}
-                      <th className="py-1 px-1 border-r border-slate-300 w-7 text-center bg-emerald-50 text-emerald-900" title="Hadir" rowSpan={2}>H</th>
-                      <th className="py-1 px-1 border-r border-slate-300 w-7 text-center bg-amber-50 text-amber-900" title="Izin" rowSpan={2}>I</th>
-                      <th className="py-1 px-1 border-r border-slate-300 w-7 text-center bg-blue-50 text-blue-900" title="Sakit" rowSpan={2}>S</th>
-                      <th className="py-1 px-1 border-r border-slate-300 w-7 text-center bg-rose-50 text-rose-900" title="Alpha" rowSpan={2}>A</th>
-                      <th className="py-1 px-1 border-r border-slate-300 w-8 text-center bg-slate-200" title="Total Pertemuan" rowSpan={2}>Tot</th>
-                      <th className="py-1 px-1 w-9 text-center bg-indigo-100 text-indigo-950" title="Persentase Kehadiran" rowSpan={2}>%</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-7 print:w-5 text-center bg-emerald-50 text-emerald-900 print:text-[8px]" title="Hadir" rowSpan={2}>H</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-7 print:w-5 text-center bg-amber-50 text-amber-900 print:text-[8px]" title="Izin" rowSpan={2}>I</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-7 print:w-5 text-center bg-blue-50 text-blue-900 print:text-[8px]" title="Sakit" rowSpan={2}>S</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-7 print:w-5 text-center bg-rose-50 text-rose-900 print:text-[8px]" title="Alpha" rowSpan={2}>A</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 w-8 print:w-6 text-center bg-slate-200 print:text-[8px]" title="Total Pertemuan" rowSpan={2}>Tot</th>
+                      <th className="py-1 px-1 print:py-0.5 print:px-0.5 w-9 print:w-7 text-center bg-indigo-100 text-indigo-950 print:text-[8px]" title="Persentase Kehadiran" rowSpan={2}>%</th>
                     </tr>
-                    <tr className="bg-slate-50 border-b border-slate-400 text-[9px] font-bold">
+                    <tr className="bg-slate-50 border-b border-slate-400 text-[9px] print:text-[7.5px] font-bold">
                       {daysArray.map((day) => {
                         const dayOfWeek = new Date(selectedYear, selectedMonth - 1, day).getDay();
                         const isSunday = dayOfWeek === 0;
@@ -1906,13 +1945,13 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                         return (
                           <th
                             key={`header-day-${day}`}
-                            className={`p-0.5 border-r border-slate-300 text-center min-w-[20px] ${
+                            className={`p-0.5 print:p-0 border-r border-slate-300 text-center min-w-[19px] print:min-w-[16px] print:w-[16.5px] ${
                               isSunday ? 'bg-rose-50 text-rose-700 font-extrabold' : 'text-slate-700'
                             }`}
                             title={`Tanggal ${day} (${dayInitials})`}
                           >
                             <div>{day}</div>
-                            <div className="text-[7px] text-slate-400 font-normal leading-none">{dayInitials}</div>
+                            <div className="text-[7px] print:text-[6px] text-slate-400 font-normal leading-none">{dayInitials}</div>
                           </th>
                         );
                       })}
@@ -1933,19 +1972,19 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                         const data = attendanceMatrixData[student.id];
                         return (
                           <tr key={`matrix-row-${student.id}`} className="hover:bg-slate-50/80">
-                            <td className="py-1 px-1 border-r border-slate-300 text-center font-mono font-bold text-slate-600 text-[9px]">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-mono font-bold text-slate-600 text-[9px] print:text-[8px]">
                               {idx + 1}
                             </td>
-                            <td className="py-1 px-1.5 border-r border-slate-300 font-mono text-[9px] text-slate-500">
+                            <td className="py-1 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 font-mono text-[9px] print:text-[7.5px] text-slate-500">
                               {student.code}
                             </td>
-                            <td className="py-1 px-2 border-r border-slate-300 font-bold text-slate-900 truncate max-w-[150px]">
+                            <td className="py-1 px-2 print:py-0.5 print:px-1 border-r border-slate-300 font-bold text-slate-900 truncate max-w-[150px] print:max-w-[110px] text-[10px] print:text-[8px]">
                               {student.name}
                             </td>
-                            <td className="py-1 px-1.5 border-r border-slate-300 text-center text-slate-600 text-[9px]">
+                            <td className="py-1 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center text-slate-600 text-[9px] print:text-[8px]">
                               {student.gradeDetail}
                             </td>
-                            <td className="py-1 px-1.5 border-r border-slate-300 text-center text-[9px]">
+                            <td className="py-1 px-1.5 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center text-[9px] print:text-[7.5px]">
                               <span className={`px-1 py-0.2 rounded font-medium ${
                                 student.classType === 'Privat' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
                               }`}>
@@ -1962,15 +2001,15 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                               return (
                                 <td
                                   key={`day-cell-${student.id}-${day}`}
-                                  className={`py-1 px-0.5 border-r border-slate-300 text-center ${
+                                  className={`py-1 px-0.5 print:py-0.5 print:px-0 border-r border-slate-300 text-center ${
                                     isSunday ? 'bg-rose-50/30' : ''
                                   }`}
                                 >
                                   {status === 'Hadir' ? (
                                     <span
-                                      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-black ${
+                                      className={`inline-flex items-center justify-center w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[10px] print:text-[8px] font-black ${
                                         isMonochrome
-                                          ? 'text-slate-950 print:text-black font-black text-[11px]'
+                                          ? 'text-slate-950 print:text-black font-black text-[11px] print:text-[8.5px]'
                                           : 'text-emerald-700 bg-emerald-100/90 print:bg-transparent print:text-black'
                                       }`}
                                       title={`Hadir: ${dayData.record?.topic || 'Sesi Pembelajaran'}`}
@@ -1979,7 +2018,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                                     </span>
                                   ) : status === 'Izin' ? (
                                     <span
-                                      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold ${
+                                      className={`inline-flex items-center justify-center w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-bold ${
                                         isMonochrome
                                           ? 'text-slate-800 print:text-black'
                                           : 'text-amber-800 bg-amber-100 print:bg-transparent print:text-black'
@@ -1990,7 +2029,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                                     </span>
                                   ) : status === 'Sakit' ? (
                                     <span
-                                      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold ${
+                                      className={`inline-flex items-center justify-center w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-bold ${
                                         isMonochrome
                                           ? 'text-slate-800 print:text-black'
                                           : 'text-blue-800 bg-blue-100 print:bg-transparent print:text-black'
@@ -2001,7 +2040,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                                     </span>
                                   ) : status === 'Alpha' ? (
                                     <span
-                                      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-extrabold ${
+                                      className={`inline-flex items-center justify-center w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-extrabold ${
                                         isMonochrome
                                           ? 'text-slate-950 font-black print:text-black'
                                           : 'text-rose-800 bg-rose-100 print:bg-transparent print:text-black'
@@ -2011,29 +2050,29 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                                       A
                                     </span>
                                   ) : (
-                                    <span className="text-slate-300 text-[8px] font-mono">-</span>
+                                    <span className="text-slate-300 text-[8px] print:text-[7px] font-mono">-</span>
                                   )}
                                 </td>
                               );
                             })}
 
                             {/* Summary Columns */}
-                            <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-emerald-800 bg-emerald-50/40">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-emerald-800 bg-emerald-50/40 text-[10px] print:text-[8px]">
                               {data?.hadirCount || 0}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-300 text-center text-amber-800 bg-amber-50/40">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center text-amber-800 bg-amber-50/40 text-[10px] print:text-[8px]">
                               {data?.izinCount || 0}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-300 text-center text-blue-800 bg-blue-50/40">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center text-blue-800 bg-blue-50/40 text-[10px] print:text-[8px]">
                               {data?.sakitCount || 0}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-rose-800 bg-rose-50/40">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-rose-800 bg-rose-50/40 text-[10px] print:text-[8px]">
                               {data?.alphaCount || 0}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-300 text-center font-mono font-bold text-slate-800 bg-slate-100">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-mono font-bold text-slate-800 bg-slate-100 text-[10px] print:text-[8px]">
                               {data?.totalCount || 0}
                             </td>
-                            <td className="py-1 px-1 text-center font-bold text-indigo-900 bg-indigo-50/60">
+                            <td className="py-1 px-1 print:py-0.5 print:px-0.5 text-center font-bold text-indigo-900 bg-indigo-50/60 text-[10px] print:text-[8px]">
                               {data?.percentage || 0}%
                             </td>
                           </tr>
@@ -2044,8 +2083,8 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                   {/* FOOTER TOTALS ROW */}
                   {filteredMatrixStudents.length > 0 && (
                     <tfoot>
-                      <tr className="bg-slate-200 border-t-2 border-slate-400 font-bold text-slate-800 text-[9px]">
-                        <td colSpan={5} className="py-1.5 px-2 text-right uppercase border-r border-slate-300">
+                      <tr className="bg-slate-200 border-t-2 border-slate-400 font-bold text-slate-800 text-[9px] print:text-[7.5px]">
+                        <td colSpan={5} className="py-1.5 px-2 print:py-0.5 print:px-1 text-right uppercase border-r border-slate-300">
                           Total Kehadiran Siswa Per Tanggal:
                         </td>
                         {daysArray.map((day) => {
@@ -2053,7 +2092,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                           return (
                             <td
                               key={`footer-total-${day}`}
-                              className="py-1 px-0.5 border-r border-slate-300 text-center font-mono"
+                              className="py-1 px-0.5 print:py-0.5 print:px-0 border-r border-slate-300 text-center font-mono"
                             >
                               {count > 0 ? (
                                 <span className="font-bold text-emerald-900">{count}</span>
@@ -2063,22 +2102,22 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                             </td>
                           );
                         })}
-                        <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-emerald-900 bg-emerald-100">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-emerald-900 bg-emerald-100 text-[10px] print:text-[8px]">
                           {grandTotals.hadir}
                         </td>
-                        <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-amber-900 bg-amber-100">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-amber-900 bg-amber-100 text-[10px] print:text-[8px]">
                           {grandTotals.izin}
                         </td>
-                        <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-blue-900 bg-blue-100">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-blue-900 bg-blue-100 text-[10px] print:text-[8px]">
                           {grandTotals.sakit}
                         </td>
-                        <td className="py-1 px-1 border-r border-slate-300 text-center font-bold text-rose-900 bg-rose-100">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-bold text-rose-900 bg-rose-100 text-[10px] print:text-[8px]">
                           {grandTotals.alpha}
                         </td>
-                        <td className="py-1 px-1 border-r border-slate-300 text-center font-mono font-bold text-slate-900 bg-slate-300">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 border-r border-slate-300 text-center font-mono font-bold text-slate-900 bg-slate-300 text-[10px] print:text-[8px]">
                           {grandTotals.totalSessions}
                         </td>
-                        <td className="py-1 px-1 text-center font-bold text-indigo-950 bg-indigo-200">
+                        <td className="py-1 px-1 print:py-0.5 print:px-0.5 text-center font-bold text-indigo-950 bg-indigo-200 text-[10px] print:text-[8px]">
                           {grandTotals.avgPercentage}%
                         </td>
                       </tr>
@@ -2088,49 +2127,49 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
               </div>
 
               {/* KETERANGAN SIMBOL / LEGENDA */}
-              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-[10px] text-slate-700 mb-4">
-                <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 print:p-1.5 print:py-1 bg-slate-50 border border-slate-300 rounded-xl text-[10px] print:text-[8px] text-slate-700 mb-4 print:mb-2">
+                <div className="flex flex-wrap items-center gap-4 print:gap-2.5">
                   <span className="font-bold uppercase text-slate-900">Keterangan:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded text-[10px] font-black text-emerald-700 bg-emerald-100 flex items-center justify-center">✓</span>
+                  <div className="flex items-center gap-1.5 print:gap-1">
+                    <span className="w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[10px] print:text-[8px] font-black text-emerald-700 bg-emerald-100 flex items-center justify-center">✓</span>
                     <span>Hadir (H)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded text-[9px] font-bold text-amber-800 bg-amber-100 flex items-center justify-center">I</span>
+                  <div className="flex items-center gap-1.5 print:gap-1">
+                    <span className="w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-bold text-amber-800 bg-amber-100 flex items-center justify-center">I</span>
                     <span>Izin (I)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded text-[9px] font-bold text-blue-800 bg-blue-100 flex items-center justify-center">S</span>
+                  <div className="flex items-center gap-1.5 print:gap-1">
+                    <span className="w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-bold text-blue-800 bg-blue-100 flex items-center justify-center">S</span>
                     <span>Sakit (S)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded text-[9px] font-bold text-rose-800 bg-rose-100 flex items-center justify-center">A</span>
-                    <span>Alpha / Tanpa Keterangan (A)</span>
+                  <div className="flex items-center gap-1.5 print:gap-1">
+                    <span className="w-4 h-4 print:w-3.5 print:h-3.5 rounded text-[9px] print:text-[7.5px] font-bold text-rose-800 bg-rose-100 flex items-center justify-center">A</span>
+                    <span>Alpha (A)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 print:gap-1">
                     <span className="font-mono text-slate-400 font-bold">[-]</span>
-                    <span>Tidak Ada Jadwal Belajar</span>
+                    <span>Tidak Ada Jadwal</span>
                   </div>
                 </div>
-                <div className="font-mono text-[9px] text-slate-500">
+                <div className="font-mono text-[9px] print:text-[7.5px] text-slate-500">
                   Dicetak pada: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
             </div>
 
             {/* Tanda Tangan Footer */}
-            <div className="grid grid-cols-2 gap-8 text-center text-xs pt-4 border-t border-slate-300 mt-2">
+            <div className="grid grid-cols-2 gap-8 print:gap-4 text-center text-xs print:text-[9px] pt-4 print:pt-1.5 border-t border-slate-300 mt-2 print:mt-1">
               <div>
-                <p className="text-slate-600 font-semibold mb-14">Tutor Pengajar / Wali Kelas,</p>
-                <p className="font-bold text-slate-900 border-t border-slate-400 pt-1 inline-block min-w-[220px]">
+                <p className="text-slate-600 font-semibold mb-14 print:mb-8">Tutor Pengajar / Wali Kelas,</p>
+                <p className="font-bold text-slate-900 border-t border-slate-400 pt-1 inline-block min-w-[220px] print:min-w-[180px]">
                   ( {matrixFilterTutor !== 'Semua' ? matrixFilterTutor : effectiveTutorName} )
                 </p>
               </div>
               <div>
-                <p className="text-slate-600 font-semibold mb-14">
+                <p className="text-slate-600 font-semibold mb-14 print:mb-8">
                   {effectiveOwnerTitle || `Kepala ${bimbelName}`},
                 </p>
-                <p className="font-bold text-slate-900 border-t border-slate-400 pt-1 inline-block min-w-[220px]">
+                <p className="font-bold text-slate-900 border-t border-slate-400 pt-1 inline-block min-w-[220px] print:min-w-[180px]">
                   ( {effectiveOwnerName} )
                 </p>
               </div>

@@ -97,9 +97,9 @@ export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardPr
       } ${isMonochrome ? 'print:text-black' : ''}`}
       style={{
         width: '100%',
-        maxWidth: isSheetMode ? '98mm' : '102mm',
-        minHeight: isSheetMode ? '124mm' : '136mm',
-        maxHeight: isSheetMode ? '133mm' : '140mm',
+        maxWidth: isSheetMode ? '94mm' : '102mm',
+        minHeight: isSheetMode ? '120mm' : '136mm',
+        maxHeight: isSheetMode ? '132mm' : '140mm',
         height: '100%',
       }}
     >

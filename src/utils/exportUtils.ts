@@ -146,6 +146,119 @@ export const exportElementToPng = async (
   }
 };
 
+/**
+ * Isolated Element Printer (Print / Cetak ke PDF)
+ * Opens the native browser print dialog exclusively for the targeted DOM element inside a dedicated,
+ * isolated iframe. This completely eliminates any background page bleeding, backdrop overlays, and menu clutter.
+ */
+export const printElement = (
+  target: HTMLElement | string,
+  documentTitle: string = 'Kwitansi Resmi'
+): boolean => {
+  try {
+    const node = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!node) {
+      window.print();
+      return false;
+    }
+
+    // Remove any previous print iframes if present
+    const oldIframe = document.getElementById('bimbel-print-isolated-iframe');
+    if (oldIframe && oldIframe.parentNode) {
+      oldIframe.parentNode.removeChild(oldIframe);
+    }
+
+    // Create a hidden isolated iframe
+    const iframe = document.createElement('iframe');
+    iframe.id = 'bimbel-print-isolated-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return false;
+    }
+
+    // Gather style and link tags to mirror styles accurately
+    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${documentTitle}</title>
+          ${styleTags}
+          <style>
+            @page {
+              size: auto;
+              margin: 6mm 6mm;
+            }
+            html, body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .print-wrapper {
+              width: 100%;
+              max-width: 680px;
+              margin: 0 auto;
+              background: #ffffff !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-wrapper">
+            ${node.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    // Give iframe rendering engine time to parse styles and images
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Iframe print error, falling back to window.print', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 1500);
+      }
+    }, 250);
+
+    return true;
+  } catch (error) {
+    console.error('Gagal mencetak dokumen terisolasi:', error);
+    window.print();
+    return false;
+  }
+};
+
 // ==========================================
 // DATA TRANSFORMATION FORMATTERS FOR EXCEL
 // ==========================================

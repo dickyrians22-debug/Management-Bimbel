@@ -15,7 +15,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { Student, BimbelSettings } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
-import { exportElementToPng } from '../../utils/exportUtils';
+import { exportElementToPng, printElement } from '../../utils/exportUtils';
 
 interface StudentQRCardModalProps {
   isOpen: boolean;
@@ -45,7 +45,15 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
 
   // Print single card
   const handlePrintCard = () => {
-    window.print();
+    const cardEl = cardRef.current || document.getElementById('printable-student-qr-card');
+    if (cardEl) {
+      printElement(
+        cardEl,
+        `Kartu_Siswa_${student.name.replace(/\s+/g, '_')}_${student.code}`
+      );
+    } else {
+      window.print();
+    }
   };
 
   // Download entire Student ID Card as PNG image
@@ -65,8 +73,8 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200 print:bg-transparent print:backdrop-blur-none print:p-0 print:static print:overflow-visible">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 flex flex-col overflow-hidden print:border-none print:shadow-none print:my-0 print:max-w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
         {/* Header (Hidden on print) */}
         <div className="no-print p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">

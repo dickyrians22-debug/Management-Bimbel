@@ -110,11 +110,25 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
+  // Daftar Metode Pembayaran Tersinkron dari Database Pengaturan
+  const availablePaymentMethods = useMemo(() => {
+    if (settings?.paymentMethods && settings.paymentMethods.length > 0) {
+      const valid = settings.paymentMethods.filter((m) => Boolean(m && m.trim()));
+      if (valid.length > 0) return valid;
+    }
+    return ['Tunai', 'Transfer BCA', 'Transfer Mandiri', 'Transfer BRI', 'QRIS'];
+  }, [settings?.paymentMethods]);
+
   // Fast Payment Modal State
   const [paymentModalStudent, setPaymentModalStudent] = useState<StudentBillingItem | null>(null);
   const [payAmountType, setPayAmountType] = useState<'full' | 'partial'>('full');
   const [customPayAmount, setCustomPayAmount] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('Transfer BCA');
+  const [paymentMethod, setPaymentMethod] = useState<string>(() => {
+    if (settings?.paymentMethods && settings.paymentMethods.length > 0) {
+      return settings.paymentMethods[0];
+    }
+    return 'Tunai';
+  });
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentNotes, setPaymentNotes] = useState<string>('');
   const [autoOpenReceipt, setAutoOpenReceipt] = useState<boolean>(true);
@@ -421,7 +435,8 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
     setModalDiscountType('percentage');
     setModalDiscountValue('');
     setModalDiscountReason('');
-    setPaymentMethod('Transfer BCA');
+    const defaultMethod = availablePaymentMethods[0] || 'Tunai';
+    setPaymentMethod(defaultMethod);
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setPaymentNotes('');
     setAutoOpenReceipt(true);
@@ -1453,14 +1468,16 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-hidden font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-hidden font-medium cursor-pointer"
                   >
-                    <option value="Transfer BCA">Transfer BCA</option>
-                    <option value="Tunai">Tunai / Cash</option>
-                    <option value="Transfer Mandiri">Transfer Mandiri</option>
-                    <option value="Transfer BRI">Transfer BRI</option>
-                    <option value="QRIS">QRIS</option>
-                    <option value="GoPay / OVO / Dana">GoPay / OVO / Dana</option>
+                    {availablePaymentMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))}
+                    {paymentMethod && !availablePaymentMethods.includes(paymentMethod) && (
+                      <option value={paymentMethod}>{paymentMethod}</option>
+                    )}
                   </select>
                 </div>
               </div>
