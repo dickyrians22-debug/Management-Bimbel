@@ -45,7 +45,7 @@ import {
   isSystemIncomeCategory,
   resolveTutorName,
 } from '../../utils/storage';
-import { exportToExcel, exportMultiSheetExcel, exportElementToPng } from '../../utils/exportUtils';
+import { exportToExcel, exportMultiSheetExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
 
 interface ProfitLossViewProps {
   attendance: AttendanceRecord[];
@@ -490,7 +490,9 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   // EXPORT HANDLERS
   // ==========================================
   const handlePrint = () => {
-    window.print();
+    const modeLabel = activeMode === 'monthly' ? `Bulan_${targetMonthName}` : 'Tahunan_12_Bulan';
+    const docTitle = `Laporan_P&L_${bimbelName.replace(/\s+/g, '_')}_${modeLabel}_${selectedYear}`;
+    printElement('printable-pl-statement', docTitle);
   };
 
   const handleExportPng = async () => {

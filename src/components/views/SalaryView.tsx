@@ -60,7 +60,7 @@ import {
 } from '../../utils/storage';
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
-import { exportToExcel, exportElementToPng } from '../../utils/exportUtils';
+import { exportToExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
 
 interface SalaryViewProps {
   currentUser: UserSession;
@@ -259,6 +259,18 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     } finally {
       setIsExportingSlipPng(false);
     }
+  };
+
+  // Cetak Slip Gaji dengan Isolasi Dokumen (Mencegah Halaman Belakang Bocor/Tembus)
+  const handlePrintSlip = () => {
+    if (!slipPrintRef.current || !activeSlipModalTutor) {
+      window.print();
+      return;
+    }
+    const monthName = getMonthNameIndo(selectedMonth);
+    const cleanTutorName = (activeSlipModalTutor.tutorName || 'Tutor').replace(/\s+/g, '_');
+    const docTitle = `Slip_Honor_${cleanTutorName}_${monthName}_${selectedYear}`;
+    printElement(slipPrintRef.current, docTitle);
   };
 
   const handleOpenPayModal = (record: TutorSalaryRecord) => {
@@ -1535,7 +1547,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
                   <span className="hidden sm:inline">Unduh Excel</span>
                 </button>
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrintSlip}
                   className={`px-3 py-1.5 font-bold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md ${
                     isMonochromeSlip
                       ? 'bg-slate-800 hover:bg-black text-white border border-slate-600'
@@ -1879,7 +1891,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={handlePrintSlip}
                   className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
                   <Printer className="w-3.5 h-3.5" />
