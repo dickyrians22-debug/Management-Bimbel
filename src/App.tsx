@@ -104,6 +104,7 @@ import { UserAccountModal } from './components/modals/UserAccountModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { QRScannerModal } from './components/modals/QRScannerModal';
 import { StudentQRCardModal } from './components/modals/StudentQRCardModal';
+import { applyThemeVariables } from './utils/theme';
 
 // Helper: Ensure accounts have unique usernames and no role collisions (e.g. non-owner cannot have username "owner")
 export const sanitizeAndFixUserAccounts = (
@@ -459,6 +460,11 @@ export default function App() {
       }
     }
   }, [settings]);
+
+  // Apply Theme Color to root CSS variables dynamically
+  useEffect(() => {
+    applyThemeVariables(settings.accentColor);
+  }, [settings.accentColor]);
 
   // --- Handlers: Auth ---
   const handleLoginSuccess = (user: UserSession) => {

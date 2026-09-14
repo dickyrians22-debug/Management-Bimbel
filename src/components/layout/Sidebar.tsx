@@ -274,14 +274,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => handleNavClick(item.id)}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition cursor-pointer group ${
                   isActive
-                    ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/25'
+                    ? 'bg-theme-primary text-white font-bold shadow-theme'
                     : 'text-slate-700 hover:bg-slate-100/80 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`p-2 rounded-xl transition ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 group-hover:text-indigo-600'
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 group-hover:text-theme-primary'
                     }`}
                   >
                     {item.icon}
@@ -290,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <p className="text-xs font-bold leading-tight">{item.label}</p>
                     <p
                       className={`text-[10px] truncate ${
-                        isActive ? 'text-indigo-100' : 'text-slate-400 group-hover:text-slate-500'
+                        isActive ? 'text-white/80' : 'text-slate-400 group-hover:text-slate-500'
                       }`}
                     >
                       {item.description}
@@ -301,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {item.badge !== undefined && (
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                      isActive ? 'bg-white text-indigo-700 font-extrabold' : item.badgeColor || 'bg-slate-200 text-slate-700'
+                      isActive ? 'bg-white text-theme-primary font-extrabold' : item.badgeColor || 'bg-slate-200 text-slate-700'
                     }`}
                   >
                     {item.badge}

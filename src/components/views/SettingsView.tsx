@@ -83,6 +83,7 @@ import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import { ResetFactoryModal } from '../modals/ResetFactoryModal';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { BimbelLogo } from '../common/BimbelLogo';
+import { THEME_PRESETS, resolvePrimaryColor, adjustColor, applyThemeVariables } from '../../utils/theme';
 
 interface SettingsViewProps {
   users: UserAccount[];
@@ -4875,6 +4876,235 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                     ✓ Terhubung ke Cetak
                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD: TEMA WARNA & AKSEN APLIKASI (COLOR PICKER & SWATCHES) */}
+            <div className="bg-white p-6 sm:p-7 rounded-3xl border border-indigo-200 shadow-xs space-y-6 bg-gradient-to-br from-slate-50/70 via-white to-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md transition-all duration-300"
+                    style={{
+                      backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
+                      boxShadow: `0 8px 16px -4px ${resolvePrimaryColor(appearanceForm.accentColor)}55`,
+                    }}
+                  >
+                    <Palette className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 font-heading flex items-center gap-2">
+                      <span>Tema Warna &amp; Palet Aksen Aplikasi</span>
+                      <span
+                        className="text-[10px] px-2.5 py-0.5 rounded-full font-extrabold text-white transition-all duration-300"
+                        style={{ backgroundColor: resolvePrimaryColor(appearanceForm.accentColor) }}
+                      >
+                        Live System
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Pilih dari kotak warna siap pakai atau tentukan kode warna HEX kustom untuk nuansa tombol, sidebar, dan sorotan sistem.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-[11px] font-semibold text-slate-500">Warna Terpilih:</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">
+                    <span
+                      className="w-4 h-4 rounded-full border border-black/10 shadow-xs"
+                      style={{ backgroundColor: resolvePrimaryColor(appearanceForm.accentColor) }}
+                    />
+                    <span className="text-xs font-mono font-bold text-slate-800">
+                      {resolvePrimaryColor(appearanceForm.accentColor).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION: Kotak Warna Pilihan (Preset Swatches) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+                  1. Pilih Kotak Warna Cepat (Preset Tema)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {THEME_PRESETS.map((preset) => {
+                    const isSelected =
+                      appearanceForm.accentColor === preset.id ||
+                      appearanceForm.accentColor?.toLowerCase() === preset.primaryHex.toLowerCase();
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setAppearanceForm({ ...appearanceForm, accentColor: preset.id });
+                          applyThemeVariables(preset.id);
+                        }}
+                        className={`relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-2.5 ${
+                          isSelected
+                            ? 'border-slate-900 bg-slate-50 shadow-md ring-2 ring-slate-900/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-6 h-6 rounded-xl shadow-xs flex items-center justify-center text-white"
+                              style={{ backgroundColor: preset.primaryHex }}
+                            >
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">{preset.name}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 leading-tight">
+                          {preset.description}
+                        </p>
+
+                        <div className="flex items-center gap-1.5 pt-1 mt-auto border-t border-slate-100">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: preset.primaryHex }}
+                          />
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {preset.primaryHex.toUpperCase()}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SECTION: Custom Hex Color Picker */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Paintbrush className="w-3.5 h-3.5 text-slate-600" />
+                    <span>2. Atau Pilih Warna Kustom Bebas (Color Picker &amp; HEX)</span>
+                  </h5>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Klik kotak warna untuk membuka color picker browser, atau ketik langsung kode HEX 6 digit (contoh: #0EA5E9).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs">
+                    <input
+                      type="color"
+                      value={resolvePrimaryColor(appearanceForm.accentColor)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAppearanceForm({ ...appearanceForm, accentColor: val });
+                        applyThemeVariables(val);
+                      }}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
+                      title="Klik untuk memilih warna"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={
+                        appearanceForm.accentColor?.startsWith('#')
+                          ? appearanceForm.accentColor
+                          : resolvePrimaryColor(appearanceForm.accentColor)
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setAppearanceForm({ ...appearanceForm, accentColor: val });
+                        if (/^#[0-9A-F]{6}$/i.test(val)) {
+                          applyThemeVariables(val);
+                        }
+                      }}
+                      placeholder="#4F46E5"
+                      className="w-24 text-xs font-mono font-bold text-slate-800 uppercase focus:outline-hidden"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppearanceForm({ ...appearanceForm, accentColor: 'indigo' });
+                      applyThemeVariables('indigo');
+                    }}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0"
+                    title="Kembalikan ke warna bawaan sistem"
+                  >
+                    Reset Bawaan
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION: Live Preview Panel */}
+              <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Pratinjau Langsung (Live Preview Komponen Tema)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Efek langsung terlihat di Sidebar dan tombol sistem
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Preview 1: Tombol Utama */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tombol Aksi Utama</p>
+                    <button
+                      type="button"
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+                      style={{
+                        backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
+                        boxShadow: `0 4px 12px ${resolvePrimaryColor(appearanceForm.accentColor)}40`,
+                      }}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Simpan &amp; Lanjutkan</span>
+                    </button>
+                  </div>
+
+                  {/* Preview 2: Menu Aktif Sidebar */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Menu Aktif Sidebar</p>
+                    <div
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-between"
+                      style={{
+                        backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
+                        boxShadow: `0 4px 12px ${resolvePrimaryColor(appearanceForm.accentColor)}40`,
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Layout className="w-3.5 h-3.5" />
+                        <span>Dashboard KPI</span>
+                      </div>
+                      <span className="text-[10px] bg-white/25 px-2 py-0.5 rounded-md">Aktif</span>
+                    </div>
+                  </div>
+
+                  {/* Preview 3: Badge & Tag */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Badge &amp; Highlight Status</p>
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                      <span
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                        style={{
+                          backgroundColor: `${resolvePrimaryColor(appearanceForm.accentColor)}18`,
+                          color: resolvePrimaryColor(appearanceForm.accentColor),
+                        }}
+                      >
+                        Bimbel Aktif
+                      </span>
+                      <span
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white"
+                        style={{ backgroundColor: resolvePrimaryColor(appearanceForm.accentColor) }}
+                      >
+                        Pro v2.6
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

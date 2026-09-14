@@ -50,7 +50,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     if (receiptCardRef.current) {
       printElement(
         receiptCardRef.current,
-        `Kwitansi_${income.receiptNumber || 'Bimbel_Sigma'}`
+        `Kwitansi_${income.receiptNumber || 'Bimbel_Sigma'}`,
+        { pageSize: 'A6 portrait', margin: '4mm', maxWidth: '105mm' }
       );
     } else {
       window.print();
@@ -127,116 +128,119 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         </div>
 
-        {/* Printable & Exportable Kwitansi Content */}
-        <div ref={receiptCardRef} id="receipt-printable-content" className="p-8 bg-white text-slate-800 space-y-6">
+        {/* Printable & Exportable Kwitansi Content (Standard A6 Format: 105mm x 148mm) */}
+        <div
+          ref={receiptCardRef}
+          id="receipt-printable-content"
+          className="p-5 sm:p-6 bg-white text-slate-800 space-y-4 mx-auto max-w-[105mm] border border-slate-200 sm:rounded-b-2xl print:border-0 print:p-2 print:m-0 print:max-w-[105mm]"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between border-b-2 border-indigo-900 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-indigo-900 text-white flex items-center justify-center font-black text-2xl font-heading shadow-md overflow-hidden">
+          <div className="flex items-center justify-between border-b-2 border-indigo-900 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-lg bg-indigo-900 text-white flex items-center justify-center font-black text-xl font-heading shadow-xs overflow-hidden shrink-0">
                 <BimbelLogo settings={settings} />
               </div>
               <div>
-                <h2 className="text-xl font-black tracking-tight text-indigo-950">{bimbelName}</h2>
-                <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
+                <h2 className="text-base font-black tracking-tight text-indigo-950 leading-tight">{bimbelName}</h2>
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider leading-tight">
                   {bimbelTagline}
                 </p>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[9px] text-slate-500 leading-tight">
                   {bimbelAddress} • Telp/WA: {bimbelPhone}
                 </p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               {income.remainingBill && income.remainingBill > 0 ? (
-                <span className="inline-block px-3 py-1 bg-amber-100 text-amber-900 font-bold text-xs rounded-full uppercase tracking-wider border border-amber-300">
-                  PEMBAYARAN SEBAGIAN (CICILAN)
+                <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-900 font-bold text-[10px] rounded-full uppercase tracking-wider border border-amber-300">
+                  CICILAN
                 </span>
               ) : (
-                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full uppercase tracking-wider border border-emerald-300">
+                <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-full uppercase tracking-wider border border-emerald-300">
                   LUNAS
                 </span>
               )}
-              <p className="text-[11px] font-mono font-bold text-slate-600 mt-1">
+              <p className="text-[10px] font-mono font-bold text-slate-600 mt-0.5">
                 {income.receiptNumber}
               </p>
             </div>
           </div>
 
-          <div className="text-center py-1">
-            <h3 className="text-base font-extrabold uppercase tracking-widest text-slate-900 border-b border-dashed border-slate-300 pb-2">
+          <div className="text-center py-0.5">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-dashed border-slate-300 pb-1.5">
               {income.remainingBill && income.remainingBill > 0
-                ? 'KWITANSI PEMBAYARAN SEBAGIAN (CICILAN IURAN LES)'
+                ? 'KWITANSI PEMBAYARAN SEBAGIAN (CICILAN)'
                 : income.incomeCategory === 'session_pack'
                 ? 'KWITANSI PEMBELIAN PAKET SESI LES'
                 : income.incomeCategory === 'registration'
                 ? 'KWITANSI BIAYA PENDAFTARAN SISWA'
                 : income.incomeCategory === 'general'
                 ? 'BUKTI PENERIMAAN KAS MASUK'
-                : 'KWITANSI PEMBAYARAN IURAN LES (LUNAS)'}
+                : 'KWITANSI PEMBAYARAN IURAN LES'}
             </h3>
           </div>
 
           {/* Details Table */}
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-1.5 border-b border-slate-100">
-              <span className="text-slate-500 w-44">Telah Diterima Dari:</span>
-              <span className="font-bold text-slate-900 text-right flex-1">
+          <div className="space-y-1.5 text-[11px] leading-tight">
+            <div className="flex justify-between py-1 border-b border-slate-100">
+              <span className="text-slate-500 w-36 shrink-0">Telah Diterima Dari:</span>
+              <span className="font-bold text-slate-900 text-right flex-1 truncate">
                 {income.studentName ? `${income.studentName} (${income.studentCode || '-'})` : (income.sourceName || 'Pembayar')}
               </span>
             </div>
             {student && (
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500 w-44">Tingkat / Paket Siswa:</span>
-                <span className="font-medium text-slate-800 text-right flex-1">
-                  {student.gradeDetail} ({student.classType}) • {student.packageType === 'session_pack' ? 'Paket Sesi' : 'SPP Bulanan'}
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Tingkat / Paket Siswa:</span>
+                <span className="font-medium text-slate-800 text-right flex-1 truncate">
+                  {student.gradeDetail} ({student.classType}) • {student.packageType === 'session_pack' ? 'Paket Sesi' : 'SPP'}
                 </span>
               </div>
             )}
-            <div className="flex justify-between py-1.5 border-b border-slate-100">
-              <span className="text-slate-500 w-44">Untuk Pembayaran:</span>
+            <div className="flex justify-between py-1 border-b border-slate-100">
+              <span className="text-slate-500 w-36 shrink-0">Untuk Pembayaran:</span>
               <span className="font-bold text-indigo-900 text-right flex-1">
                 {income.incomeCategory === 'session_pack'
-                  ? `Pembelian Kuota ${income.sessionsCount || 8} Sesi Les (Periode ${getMonthNameIndo(income.accrualMonth)} ${income.accrualYear})`
+                  ? `Paket ${income.sessionsCount || 8} Sesi (${getMonthNameIndo(income.accrualMonth)} ${income.accrualYear})`
                   : income.incomeCategory === 'registration'
-                  ? 'Biaya Registrasi / Pendaftaran Siswa Baru'
+                  ? 'Registrasi Siswa Baru'
                   : income.incomeCategory === 'general'
-                  ? `${income.category || 'Penerimaan Kas Umum'}`
-                  : `SPP Les Periode Bulan ${getMonthNameIndo(income.accrualMonth)} ${income.accrualYear} (${income.sessionsCount || 8} Sesi)`}
+                  ? `${income.category || 'Penerimaan Kas'}`
+                  : `SPP ${getMonthNameIndo(income.accrualMonth)} ${income.accrualYear} (${income.sessionsCount || 8} Sesi)`}
               </span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-slate-100">
-              <span className="text-slate-500 w-44">Tanggal Pembayaran:</span>
+            <div className="flex justify-between py-1 border-b border-slate-100">
+              <span className="text-slate-500 w-36 shrink-0">Tanggal Bayar:</span>
               <span className="font-medium text-slate-800 text-right flex-1">
                 {formatDateIndo(income.datePaid)}
               </span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-slate-100">
-              <span className="text-slate-500 w-44">Metode Pembayaran:</span>
+            <div className="flex justify-between py-1 border-b border-slate-100">
+              <span className="text-slate-500 w-36 shrink-0">Metode Bayar:</span>
               <span className="font-medium text-slate-800 text-right flex-1">
                 {income.paymentMethod}
               </span>
             </div>
             {income.discountAmount && income.discountAmount > 0 ? (
-              <div className="flex justify-between py-1.5 border-b border-slate-100 text-amber-900 bg-amber-50/60 px-2 rounded-lg">
-                <span className="font-semibold w-44">Keringanan / Diskon:</span>
+              <div className="flex justify-between py-1 border-b border-slate-100 text-amber-900 bg-amber-50/60 px-1.5 rounded">
+                <span className="font-semibold w-36 shrink-0">Diskon / Potongan:</span>
                 <span className="font-bold text-right flex-1 font-mono">
                   -{formatRupiah(income.discountAmount)}
                   {income.discountType === 'percentage' && income.discountValue ? ` (${income.discountValue}%)` : ''}
-                  {income.discountReason ? ` — ${income.discountReason}` : ''}
                 </span>
               </div>
             ) : null}
             {income.remainingBill && income.remainingBill > 0 ? (
-              <div className="flex justify-between py-1.5 border-b border-slate-100 text-amber-700 bg-amber-50/50 px-2 rounded-lg">
-                <span className="font-semibold w-44">Status Pembayaran:</span>
+              <div className="flex justify-between py-1 border-b border-slate-100 text-amber-700 bg-amber-50/50 px-1.5 rounded">
+                <span className="font-semibold w-36 shrink-0">Status Pembayaran:</span>
                 <span className="font-bold text-right flex-1">
-                  Cicilan (Sisa Tagihan: {formatRupiah(income.remainingBill)} dari Total {formatRupiah(income.totalBill || income.amount)})
+                  Cicilan (Sisa {formatRupiah(income.remainingBill)})
                 </span>
               </div>
             ) : null}
             {income.notes && (
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500 w-44">Keterangan:</span>
-                <span className="text-slate-700 italic text-right flex-1 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Keterangan:</span>
+                <span className="text-slate-700 italic text-right flex-1 text-[10px]">
                   {income.notes}
                 </span>
               </div>
@@ -245,92 +249,66 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
           {/* Amount Box */}
           {income.remainingBill && income.remainingBill > 0 ? (
-            <div className="p-4 bg-amber-50/80 border-2 border-amber-400 rounded-2xl space-y-2.5">
-              <div className="flex items-center justify-between text-xs text-slate-700">
+            <div className="p-3 bg-amber-50/80 border border-amber-400 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-slate-700">
                 <span className="font-semibold">Total Tagihan Periode Ini:</span>
-                <span className="font-bold font-mono text-sm text-slate-900">
+                <span className="font-bold font-mono text-xs text-slate-900">
                   {formatRupiah(income.totalBill || (income.amount + income.remainingBill))}
                 </span>
               </div>
-              {income.discountAmount && income.discountAmount > 0 && (
-                <div className="flex items-center justify-between text-xs text-amber-800">
-                  <span className="font-semibold">Potongan Diskon:</span>
-                  <span className="font-bold font-mono text-sm">
-                    -{formatRupiah(income.discountAmount)}
-                  </span>
-                </div>
-              )}
               <div className="flex items-center justify-between pt-1 border-t border-amber-200">
-                <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-800">
-                  JUMLAH DITERIMA SAAT INI (CICILAN):
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-emerald-800">
+                  DITERIMA SAAT INI (CICILAN):
                 </span>
-                <span className="text-2xl font-black text-emerald-700 font-mono">
+                <span className="text-lg font-black text-emerald-700 font-mono">
                   {formatRupiah(income.amount)}
                 </span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-amber-200 text-xs">
+              <div className="flex items-center justify-between pt-1 border-t border-amber-200 text-[10px]">
                 <span className="font-bold text-amber-900">SISA KURANG BAYAR:</span>
-                <span className="font-black text-sm text-amber-700 font-mono bg-white px-2 py-0.5 rounded border border-amber-300">
+                <span className="font-black text-xs text-amber-700 font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300">
                   {formatRupiah(income.remainingBill)}
                 </span>
               </div>
             </div>
-          ) : income.discountAmount && income.discountAmount > 0 ? (
-            <div className="p-4 bg-emerald-50 border-2 border-emerald-500/40 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-700">
-                <span className="font-semibold">Tarif Tagihan Normal:</span>
-                <span className="font-bold font-mono text-sm text-slate-500 line-through">
-                  {formatRupiah(income.originalAmount || (income.amount + income.discountAmount))}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-amber-800">
-                <span className="font-semibold">
-                  Potongan Diskon {income.discountType === 'percentage' && income.discountValue ? `(${income.discountValue}%)` : ''}:
-                </span>
-                <span className="font-bold font-mono text-sm">
-                  -{formatRupiah(income.discountAmount)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
-                <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-800">
-                  TOTAL DITERIMA KAS (LUNAS):
-                </span>
-                <span className="text-2xl font-black text-emerald-700 font-mono">
-                  {formatRupiah(income.amount)}
-                </span>
-              </div>
-            </div>
           ) : (
-            <div className="p-4 bg-emerald-50 border-2 border-emerald-500/40 rounded-2xl flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-800">
-                JUMLAH DITERIMA (LUNAS):
-              </span>
-              <span className="text-2xl font-black text-emerald-700 font-mono">
+            <div className="p-3 bg-emerald-50 border border-emerald-500/40 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-emerald-800 block">
+                  JUMLAH DITERIMA (LUNAS):
+                </span>
+                {income.discountAmount && income.discountAmount > 0 && (
+                  <span className="text-[9px] text-slate-500">
+                    Tarif normal: <span className="line-through">{formatRupiah(income.originalAmount || (income.amount + income.discountAmount))}</span>
+                  </span>
+                )}
+              </div>
+              <span className="text-xl font-black text-emerald-700 font-mono">
                 {formatRupiah(income.amount)}
               </span>
             </div>
           )}
 
           {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 pt-4 text-xs">
+          <div className="grid grid-cols-2 gap-4 pt-2 text-[10px]">
             <div className="text-center">
-              <p className="text-slate-600 font-semibold mb-14">Orang Tua / Wali Siswa,</p>
-              <div className="border-t border-slate-400 pt-1 font-bold text-slate-900 inline-block min-w-[170px]">
-                ( {student?.parentName || (student ? `Wali dari ${student.name}` : (income.studentName ? `Wali dari ${income.studentName}` : '........................................'))} )
+              <p className="text-slate-600 font-semibold mb-9">Wali / Pembayar,</p>
+              <div className="border-t border-slate-400 pt-0.5 font-bold text-slate-900 inline-block min-w-[120px]">
+                ( {student?.parentName || (student ? `Wali ${student.name}` : (income.studentName ? `Wali ${income.studentName}` : '......................'))} )
               </div>
             </div>
             <div className="text-center">
-              <p className="text-slate-600 font-semibold mb-14">
-                {settings?.financeOfficerTitle || 'Petugas Keuangan / Kasir'},
+              <p className="text-slate-600 font-semibold mb-9">
+                {settings?.financeOfficerTitle || 'Kasir / Petugas'},
               </p>
-              <div className="border-t border-slate-400 pt-1 font-bold text-slate-900 inline-block min-w-[170px]">
-                ( {income.receivedBy || settings?.financeOfficerName || ownerName || 'Petugas Kasir'} )
+              <div className="border-t border-slate-400 pt-0.5 font-bold text-slate-900 inline-block min-w-[120px]">
+                ( {income.receivedBy || settings?.financeOfficerName || ownerName || 'Petugas'} )
               </div>
             </div>
           </div>
 
-          <div className="text-center text-[10px] text-slate-400 border-t border-slate-100 pt-3">
-            *Kwitansi ini adalah bukti pembayaran yang sah diterbitkan oleh Sistem Manajemen Operasional {bimbelName}.
+          <div className="text-center text-[9px] text-slate-400 border-t border-slate-100 pt-1.5">
+            *Bukti pembayaran sah {bimbelName}. Standar Kertas A6 (1/4 A4).
           </div>
         </div>
       </div>

@@ -261,7 +261,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     }
   };
 
-  // Cetak Slip Gaji dengan Isolasi Dokumen (Mencegah Halaman Belakang Bocor/Tembus)
+  // Cetak Slip Gaji dengan Isolasi Dokumen (Standar A6: 105mm x 148mm - Hemat Kertas 1/4 A4)
   const handlePrintSlip = () => {
     if (!slipPrintRef.current || !activeSlipModalTutor) {
       window.print();
@@ -270,7 +270,11 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     const monthName = getMonthNameIndo(selectedMonth);
     const cleanTutorName = (activeSlipModalTutor.tutorName || 'Tutor').replace(/\s+/g, '_');
     const docTitle = `Slip_Honor_${cleanTutorName}_${monthName}_${selectedYear}`;
-    printElement(slipPrintRef.current, docTitle);
+    printElement(slipPrintRef.current, docTitle, {
+      pageSize: 'A6 portrait',
+      margin: '4mm',
+      maxWidth: '105mm',
+    });
   };
 
   const handleOpenPayModal = (record: TutorSalaryRecord) => {

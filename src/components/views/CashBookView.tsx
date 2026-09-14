@@ -375,47 +375,55 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        {/* Dedicated Action Buttons Space */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Action Group 1: Pencatatan Transaksi */}
           {canEdit && (
-            <>
+            <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl">
               <button
+                id="btn-cashbook-add-income"
                 onClick={() => onOpenIncomeModal()}
-                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                title="Catat Kas Masuk Baru"
               >
                 <PlusCircle className="w-4 h-4 shrink-0" />
                 <span>+ Kas Masuk</span>
               </button>
               <button
+                id="btn-cashbook-add-expense"
                 onClick={() => onOpenExpenseModal()}
-                className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                className="flex-1 sm:flex-initial px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                title="Catat Kas Keluar Baru"
               >
                 <MinusCircle className="w-4 h-4 shrink-0" />
                 <span>- Kas Keluar</span>
               </button>
-            </>
+            </div>
           )}
 
-          <button
-            id="btn-export-cashbook-excel"
-            onClick={handleExportExcel}
-            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            title="Unduh seluruh mutasi buku kas ke format Excel (.xlsx)"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Excel (.xlsx)</span>
-          </button>
+          {/* Action Group 2: Unduh & Ekspor */}
+          <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl">
+            <button
+              id="btn-export-cashbook-excel"
+              onClick={handleExportExcel}
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Unduh seluruh mutasi buku kas ke format Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Excel (.xlsx)</span>
+            </button>
 
-          <button
-            id="btn-export-cashbook-png"
-            onClick={handleExportPng}
-            disabled={isExportingPng}
-            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
-            title="Unduh visual buku kas sebagai gambar PNG"
-          >
-            <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
-            <span>{isExportingPng ? 'Menyimpan...' : 'PNG'}</span>
-          </button>
+            <button
+              id="btn-export-cashbook-png"
+              onClick={handleExportPng}
+              disabled={isExportingPng}
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300/80 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+              title="Unduh visual buku kas sebagai gambar PNG"
+            >
+              <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
+              <span>{isExportingPng ? 'Menyimpan...' : 'Gambar PNG'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

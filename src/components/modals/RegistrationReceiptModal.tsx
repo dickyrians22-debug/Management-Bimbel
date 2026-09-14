@@ -71,7 +71,8 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
       const studentName = prospectiveStudent?.studentName ? prospectiveStudent.studentName.replace(/\s+/g, '_') : 'Siswa';
       printElement(
         receiptContainerRef.current,
-        `Bukti_Pendaftaran_${studentName}_${prospectiveStudent?.registrationNumber || ''}`
+        `Bukti_Pendaftaran_${studentName}_${prospectiveStudent?.registrationNumber || ''}`,
+        { pageSize: 'A6 portrait', margin: '4mm', maxWidth: '105mm' }
       );
     } else {
       window.print();
@@ -261,248 +262,146 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
           <div
             id="printable-registration-receipt"
             ref={receiptContainerRef}
-            className="w-full max-w-[660px] bg-white rounded-xl shadow-lg border border-slate-300 p-6 sm:p-8 text-slate-900 space-y-4 print:shadow-none print:border-none print:p-0 print:m-0 print:rounded-none"
+            className="w-full max-w-[105mm] bg-white rounded-xl shadow-lg border border-slate-300 p-4 text-slate-900 space-y-3 print:shadow-none print:border-none print:p-2 print:m-0 print:rounded-none print:max-w-[105mm]"
           >
             {/* 1. KOP SURAT RESMI */}
-            <div className="border-b-2 border-slate-900 pb-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl tracking-tight shrink-0 overflow-hidden p-0.5 ${
+            <div className="border-b-2 border-slate-900 pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg tracking-tight shrink-0 overflow-hidden p-0.5 ${
                     isMonochrome
                       ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
-                      : 'bg-indigo-950 text-white shadow-sm print:bg-white print:border-2 print:border-black print:text-black'
+                      : 'bg-indigo-950 text-white shadow-xs print:bg-white print:border-2 print:border-black print:text-black'
                   }`}>
                     <BimbelLogo settings={settings} />
                   </div>
                   <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-950 uppercase tracking-tight font-heading leading-none">
+                    <h1 className="text-sm font-black text-slate-950 uppercase tracking-tight font-heading leading-tight">
                       {bimbelName}
                     </h1>
-                    <p className={`text-xs font-bold italic mt-0.5 ${
+                    <p className={`text-[9px] font-bold italic leading-tight ${
                       isMonochrome ? 'text-slate-700 print:text-black' : 'text-amber-700 print:text-black'
                     }`}>
                       "{bimbelTagline}"
                     </p>
-                    <p className="text-[11px] text-slate-600 leading-tight mt-1 print:text-slate-700">
-                      {bimbelAddress} • Telp/WA: <span className="font-semibold text-slate-800">{bimbelPhone}</span>
+                    <p className="text-[8px] text-slate-600 leading-tight mt-0.5 print:text-slate-700">
+                      {bimbelAddress} • WA: <span className="font-semibold text-slate-800">{bimbelPhone}</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className={`inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md border ${
+                  <span className={`inline-block px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded border ${
                     isMonochrome
-                      ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
+                      ? 'bg-white border border-slate-900 text-slate-950 print:border-black print:text-black'
                       : 'bg-indigo-100 border-indigo-200 text-indigo-950 print:bg-white print:border-2 print:border-black print:text-black'
                   }`}>
-                    PPDB 2026/2027
+                    PPDB RESMI
                   </span>
-                  <p className="text-[10px] text-slate-400 font-mono mt-1">
-                    Ref: {prospectiveStudent.id.slice(0, 8)}
+                  <p className="text-[8px] text-slate-400 font-mono mt-0.5">
+                    {prospectiveStudent.registrationNumber}
                   </p>
                 </div>
               </div>
-              <div className="mt-2.5 border-t border-slate-400" />
             </div>
 
-            {/* 2. DOKUMEN TITLE & SUBTITLE */}
-            <div className="text-center pt-1 pb-0.5">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-wide uppercase font-heading">
-                BUKTI PENDAFTARAN PESERTA DIDIK BARU
+            {/* 2. DOKUMEN TITLE */}
+            <div className="text-center py-0.5">
+              <h2 className="text-[11px] font-black text-slate-900 tracking-wide uppercase font-heading">
+                BUKTI REGISTRASI SISWA BARU
               </h2>
-              <p className="text-xs text-slate-600 font-medium mt-0.5">
-                {ppdbDocSubtitle}
+              <p className="text-[8px] text-slate-500 font-medium">
+                Tgl: {regDateFormatted} • Ref: {prospectiveStudent.id.slice(0, 8)}
               </p>
             </div>
 
-            {/* 3. REGISTRATION CALLOUT CARD (INK-SAVER OPTIMIZED) */}
-            <div className={`p-3.5 sm:p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 border ${
-              isMonochrome
-                ? 'bg-white text-slate-950 border-2 border-slate-900 print:border-black'
-                : 'bg-slate-900 text-white border border-slate-800 shadow-xs print:bg-white print:text-slate-950 print:border-2 print:border-black'
-            }`}>
-              <div className="space-y-0.5">
-                <p className={`text-[10px] uppercase font-bold tracking-widest ${
-                  isMonochrome ? 'text-slate-600 print:text-slate-700' : 'text-slate-400 print:text-slate-700'
-                }`}>
-                  Nomor Registrasi Calon Siswa
-                </p>
-                <p className={`text-xl sm:text-2xl font-black tracking-wider font-mono ${
-                  isMonochrome ? 'text-slate-950 print:text-black' : 'text-amber-400 print:text-black'
-                }`}>
-                  {prospectiveStudent.registrationNumber}
-                </p>
-                <p className={`text-[11px] ${
-                  isMonochrome ? 'text-slate-700 print:text-black' : 'text-slate-300 print:text-black'
-                }`}>
-                  Tanggal Registrasi: <span className="font-semibold">{regDateFormatted}</span>
-                </p>
-              </div>
-
-              <div className="text-right space-y-1">
-                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border ${
-                  isMonochrome
-                    ? 'bg-white text-slate-950 border-slate-900 print:border-black'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 print:bg-white print:text-black print:border-black'
-                }`}>
-                  <CheckCircle className={`w-3.5 h-3.5 ${isMonochrome ? 'text-slate-950' : 'text-emerald-400 print:text-black'}`} />
-                  <span>Status: {prospectiveStudent.status || 'Terdaftar'}</span>
-                </div>
-                <p className={`text-[11px] ${
-                  isMonochrome ? 'text-slate-700 print:text-black' : 'text-slate-300 print:text-black'
-                }`}>
-                  Program: <span className="font-bold">{prospectiveStudent.classType}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* 4. BIODATA & RINCIAN PENDAFTARAN */}
-            <div className="border border-slate-300 rounded-xl overflow-hidden print:border-black">
-              <div className={`px-3.5 py-1.5 border-b flex items-center justify-between ${
-                isMonochrome
-                  ? 'bg-white border-slate-400 print:border-black'
-                  : 'bg-slate-100 border-slate-300 print:bg-white print:border-black'
-              }`}>
-                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-slate-800" />
-                  <span>Rincian Data Calon Siswa &amp; Orang Tua</span>
-                </span>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
-                  isMonochrome
-                    ? 'bg-white border-slate-900 text-slate-900 print:border-black'
-                    : 'text-indigo-900 bg-indigo-50 border-indigo-200 print:bg-white print:text-black print:border-black'
-                }`}>
-                  Jenjang: {prospectiveStudent.level}
-                </span>
-              </div>
-
-              <div className="p-3.5 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-2.5 text-xs">
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Nama Lengkap Siswa:</span>
-                  <span className="font-bold text-slate-900 text-sm">{prospectiveStudent.studentName}</span>
-                  {prospectiveStudent.nickname && (
-                    <span className="text-slate-500 text-xs ml-1">({prospectiveStudent.nickname})</span>
-                  )}
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Jenis Kelamin:</span>
-                  <span className="font-semibold text-slate-800">
-                    {prospectiveStudent.gender === 'L' ? 'Laki-laki (L)' : prospectiveStudent.gender === 'P' ? 'Perempuan (P)' : '-'}
+            {/* 3. BIODATA & RINCIAN PENDAFTARAN */}
+            <div className="border border-slate-300 rounded-lg overflow-hidden text-[10px] leading-tight print:border-black">
+              <div className="p-2 space-y-1 bg-slate-50/50">
+                <div className="flex justify-between py-0.5 border-b border-slate-200">
+                  <span className="text-slate-500 w-28 shrink-0">Nama Calon Siswa:</span>
+                  <span className="font-extrabold text-slate-900 text-right truncate">
+                    {prospectiveStudent.studentName} {prospectiveStudent.nickname ? `(${prospectiveStudent.nickname})` : ''}
                   </span>
                 </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Jenjang &amp; Kelas:</span>
-                  <span className="font-bold text-slate-900">
-                    {prospectiveStudent.gradeDetail || `Jenjang ${prospectiveStudent.level}`}
+                <div className="flex justify-between py-0.5 border-b border-slate-200">
+                  <span className="text-slate-500 w-28 shrink-0">Jenjang / Kelas:</span>
+                  <span className="font-bold text-slate-800 text-right">
+                    {prospectiveStudent.gradeDetail || `Jenjang ${prospectiveStudent.level}`} ({prospectiveStudent.classType})
                   </span>
                 </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Asal Sekolah:</span>
-                  <span className="font-semibold text-slate-800">
+                <div className="flex justify-between py-0.5 border-b border-slate-200">
+                  <span className="text-slate-500 w-28 shrink-0">Asal Sekolah:</span>
+                  <span className="font-medium text-slate-800 text-right truncate">
                     {prospectiveStudent.schoolOrigin || '-'}
                   </span>
                 </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Nama Orang Tua / Wali:</span>
-                  <span className="font-bold text-slate-900">{prospectiveStudent.parentName}</span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">No. WhatsApp / Telepon:</span>
-                  <span className="font-bold text-emerald-700 font-mono">
-                    {prospectiveStudent.parentPhone}
+                <div className="flex justify-between py-0.5 border-b border-slate-200">
+                  <span className="text-slate-500 w-28 shrink-0">Orang Tua / Wali:</span>
+                  <span className="font-bold text-slate-900 text-right">
+                    {prospectiveStudent.parentName} ({prospectiveStudent.parentPhone})
                   </span>
                 </div>
-
-                <div className="sm:col-span-2">
-                  <span className="text-slate-500 block text-[11px]">Mata Pelajaran Diminati:</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {(prospectiveStudent.interestedSubjects || []).length > 0 ? (
-                      prospectiveStudent.interestedSubjects.map((sub, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-300 text-[11px] font-bold rounded-md"
-                        >
-                          ✓ {sub}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-600 font-medium">Semua Mata Pelajaran Pokok</span>
-                    )}
-                  </div>
+                <div className="flex justify-between py-0.5 border-b border-slate-200">
+                  <span className="text-slate-500 w-28 shrink-0">Mata Pelajaran:</span>
+                  <span className="font-semibold text-indigo-950 text-right truncate">
+                    {(prospectiveStudent.interestedSubjects || []).join(', ') || 'Semua Pokok'}
+                  </span>
                 </div>
-
                 {prospectiveStudent.preferredSchedule && (
-                  <div className="sm:col-span-2">
-                    <span className="text-slate-500 block text-[11px]">Preferensi Jadwal Belajar:</span>
-                    <span className="font-medium text-slate-800 bg-amber-50/80 text-amber-950 border border-amber-200 px-2 py-0.5 rounded inline-block mt-0.5">
-                      📅 {prospectiveStudent.preferredSchedule}
+                  <div className="flex justify-between py-0.5 border-b border-slate-200">
+                    <span className="text-slate-500 w-28 shrink-0">Jadwal Diminati:</span>
+                    <span className="font-medium text-slate-800 text-right">
+                      {prospectiveStudent.preferredSchedule}
                     </span>
                   </div>
                 )}
-
                 {prospectiveStudent.address && (
-                  <div className="sm:col-span-2">
-                    <span className="text-slate-500 block text-[11px]">Alamat Domisili:</span>
-                    <span className="text-slate-700 font-medium">{prospectiveStudent.address}</span>
-                  </div>
-                )}
-
-                {prospectiveStudent.notes && (
-                  <div className="sm:col-span-2">
-                    <span className="text-slate-500 block text-[11px]">Catatan Khusus / Target Belajar:</span>
-                    <span className="text-slate-700 italic font-medium">"{prospectiveStudent.notes}"</span>
+                  <div className="flex justify-between py-0.5 border-b border-slate-200">
+                    <span className="text-slate-500 w-28 shrink-0">Alamat Domisili:</span>
+                    <span className="text-slate-700 text-right truncate">{prospectiveStudent.address}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 5. KETENTUAN & PETUNJUK PENDAFTARAN (Disediakan dari Pengaturan Owner) */}
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-300 space-y-1.5 text-xs">
-              <p className="font-bold text-slate-900 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{ppdbTermsTitle}</span>
+            {/* 4. KETENTUAN PENDAFTARAN */}
+            <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[8.5px] leading-snug space-y-0.5">
+              <p className="font-bold text-slate-900 uppercase">
+                Petunjuk &amp; Ketentuan:
               </p>
-              <ol className="list-decimal list-inside space-y-1 text-slate-700 text-[11px] leading-relaxed">
-                {ppdbTerms.map((term, index) => (
-                  <li key={index} className="pl-0.5">
-                    {term}
-                  </li>
-                ))}
-              </ol>
+              <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                <li>Bukti sah pendaftaran calon peserta didik di {bimbelName}.</li>
+                <li>Admin akan konfirmasi pemilihan jadwal dan kelas melalui WhatsApp.</li>
+                <li>Administrasi diselesaikan sebelum sesi pertama dimulai.</li>
+              </ul>
             </div>
 
-            {/* 6. TANDA TANGAN & PENGESAHAN */}
-            <div className="grid grid-cols-2 gap-6 pt-3 text-xs">
-              <div className="text-center flex flex-col justify-between items-center min-h-[90px]">
-                <p className="text-slate-600 font-semibold">
-                  Orang Tua / Wali Siswa,
+            {/* 5. TANDA TANGAN & PENGESAHAN */}
+            <div className="grid grid-cols-2 gap-3 pt-1 text-[9px]">
+              <div className="text-center">
+                <p className="text-slate-600 font-semibold mb-8">
+                  Orang Tua / Wali,
                 </p>
-                <div className="border-t border-slate-900 pt-1 font-bold text-slate-900 min-w-[150px]">
-                  ( {prospectiveStudent.parentName || '...........................................'} )
+                <div className="border-t border-slate-900 pt-0.5 font-bold text-slate-900 inline-block min-w-[100px]">
+                  ( {prospectiveStudent.parentName || '..................'} )
                 </div>
               </div>
 
-              <div className="text-center flex flex-col justify-between items-center min-h-[90px]">
-                <div>
-                  <p className="text-slate-500 text-[10px]">{effectiveCity}, {todayFormatted}</p>
-                  <p className="text-slate-800 font-semibold">
-                    Administrasi &amp; PPDB {bimbelName},
-                  </p>
-                </div>
-                <div className="border-t border-slate-900 pt-1 font-bold text-slate-900 min-w-[150px]">
+              <div className="text-center">
+                <p className="text-slate-500 text-[8px]">{effectiveCity}, {todayFormatted}</p>
+                <p className="text-slate-800 font-semibold mb-6">
+                  Admin PPDB,
+                </p>
+                <div className="border-t border-slate-900 pt-0.5 font-bold text-slate-900 inline-block min-w-[100px]">
                   ( {ownerName} )
                 </div>
               </div>
             </div>
 
             {/* Document Footer */}
-            <div className="text-center text-[10px] text-slate-400 border-t border-slate-200 pt-2">
-              *Lembar bukti registrasi ini sah diterbitkan secara digital oleh Sistem Manajemen &amp; PPDB {bimbelName}.
+            <div className="text-center text-[8px] text-slate-400 border-t border-slate-200 pt-1">
+              *Bukti pendaftaran sah {bimbelName}. Standar Kertas A6 (1/4 A4).
             </div>
           </div>
         </div>

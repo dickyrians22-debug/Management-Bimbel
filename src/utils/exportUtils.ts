@@ -153,7 +153,12 @@ export const exportElementToPng = async (
  */
 export const printElement = (
   target: HTMLElement | string,
-  documentTitle: string = 'Kwitansi Resmi'
+  documentTitle: string = 'Kwitansi Resmi',
+  options?: {
+    pageSize?: 'A6 portrait' | 'A4 portrait' | 'A4 landscape' | 'auto';
+    margin?: string;
+    maxWidth?: string;
+  }
 ): boolean => {
   try {
     const node = typeof target === 'string' ? document.getElementById(target) : target;
@@ -161,6 +166,10 @@ export const printElement = (
       window.print();
       return false;
     }
+
+    const pageSize = options?.pageSize || 'auto';
+    const pageMargin = options?.margin || '4mm';
+    const maxWidth = options?.maxWidth || (pageSize.includes('A6') ? '105mm' : '680px');
 
     // Remove any previous print iframes if present
     const oldIframe = document.getElementById('bimbel-print-isolated-iframe');
@@ -202,8 +211,8 @@ export const printElement = (
           ${styleTags}
           <style>
             @page {
-              size: auto;
-              margin: 6mm 6mm;
+              size: ${pageSize};
+              margin: ${pageMargin};
             }
             html, body {
               background: #ffffff !important;
@@ -219,7 +228,7 @@ export const printElement = (
             }
             .print-wrapper {
               width: 100%;
-              max-width: 680px;
+              max-width: ${maxWidth};
               margin: 0 auto;
               background: #ffffff !important;
             }

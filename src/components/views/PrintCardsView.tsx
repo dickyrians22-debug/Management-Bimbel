@@ -59,6 +59,7 @@ import {
   exportToExcel,
   exportElementToPng,
   formatAttendanceMatrixForExcel,
+  printElement,
 } from '../../utils/exportUtils';
 
 interface PrintCardsViewProps {
@@ -166,6 +167,20 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
 
   // Print trigger
   const handlePrint = () => {
+    // If in Mode A with single pocket card (1/4 A4), print directly in isolated A6 format
+    if (activeMode === 'mode-a' && modeALayout === 'pocket-card') {
+      const el = document.getElementById('printable-pocket-cards');
+      if (el) {
+        const studentName = selectedStudent?.name?.replace(/\s+/g, '_') || 'Siswa';
+        const monthName = MONTH_NAMES_ID[selectedMonth - 1] || 'Bulan';
+        printElement(el, `Kartu_Saku_A6_${studentName}_${monthName}_${selectedYear}`, {
+          pageSize: 'A6 portrait',
+          margin: '4mm',
+          maxWidth: '105mm',
+        });
+        return;
+      }
+    }
     window.print();
   };
 
@@ -729,6 +744,8 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                   ? 'Cetak / Simpan PDF (A4 Landscape)'
                   : modeALayout === 'pocket-card-sheet-4'
                   ? 'Cetak / Simpan PDF (Massal 4 Siswa)'
+                  : modeALayout === 'pocket-card'
+                  ? 'Cetak / Simpan PDF (A6)'
                   : 'Cetak / Simpan PDF (A4)'}
               </span>
             </button>
@@ -953,7 +970,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="full-a4">📄 Lembar Laporan Lengkap (A4 Full)</option>
-                <option value="pocket-card">🗂️ Kartu Saku 1 Siswa (1/4 Kertas A4)</option>
+                <option value="pocket-card">🗂️ Kartu Saku 1 Siswa (Ukuran A6 / 1/4 A4)</option>
                 {userRole !== 'siswa' && (
                   <option value="pocket-card-sheet-4">🖨️ Cetak Massal 4 Siswa / Kertas A4 (Siap Gunting)</option>
                 )}
