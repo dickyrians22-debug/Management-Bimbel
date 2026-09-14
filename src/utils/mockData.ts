@@ -97,6 +97,8 @@ export const DEFAULT_SETTINGS: BimbelSettings = {
   sidebarFooterTagline: '“Belajar Sampai Paham”',
   sidebarFooterNote: 'Data tersimpan aman di Database Cloud & Browser',
   accentColor: 'indigo',
+  topbarStyle: 'theme-tint',
+  accentOpacity: 100,
 
   // Default Pengaturan Dokumen PPDB (Tanpa klaim trial gratis jika tidak dikehendaki)
   ppdbDocSubtitle: 'Penerimaan Peserta Didik Baru & Registrasi Program Bimbingan Belajar',

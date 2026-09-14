@@ -4,6 +4,7 @@ import { ExpenseRecord, BimbelSettings } from '../../types';
 import { formatRupiah, formatDateIndo, angkaTerbilang, normalizeExpenseRefNumber } from '../../utils/storage';
 import { exportElementToPng, printElement } from '../../utils/exportUtils';
 import { BimbelLogo } from '../common/BimbelLogo';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface ExpenseReceiptModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
   const ownerTitle = settings?.ownerTitle || 'Pemilik & Kepala Lembaga';
   const financeOfficerName = settings?.financeOfficerName || ownerName;
   const financeOfficerTitle = settings?.financeOfficerTitle || 'Bendahara / Finance & Admin';
+  const theme = getDocumentThemeStyles(settings?.accentColor);
 
   // Toggle penandatangan pihak internal lembaga (Default: Finance/Bendahara sesuai profil perusahaan)
   const [signerType, setSignerType] = useState<'finance' | 'owner'>('finance');
@@ -188,7 +190,8 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
               id="btn-download-expense-receipt-png"
               onClick={handleDownloadImage}
               disabled={isExportingImage}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              className="px-3 py-1.5 hover:opacity-90 active:scale-95 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              style={{ backgroundColor: theme.primary }}
               title="Unduh gambar PNG (format center A6 presisi) Bukti Kas Keluar"
             >
               {isExportingImage ? (

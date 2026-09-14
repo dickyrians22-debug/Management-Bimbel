@@ -16,6 +16,7 @@ import { Student, BimbelSettings } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
 import { exportElementToPng, printElement } from '../../utils/exportUtils';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface StudentQRCardModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
   const brandTitle = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
   const brandTagline = (settings?.tagline || settings?.sidebarFooterTagline || 'Belajar Sampai Paham').replace(/[“”"]/g, '');
   const ownerName = settings?.ownerName || 'Nanik Susilowati, M.Pd';
+  const theme = getDocumentThemeStyles(settings?.accentColor);
 
   // QR Code payload - clean student code for universal white-label scanning
   const qrPayload = student.code;
@@ -130,11 +132,15 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
                 onClick={() => setIsMonochrome(false)}
                 className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer ${
                   !isMonochrome
-                    ? 'bg-white text-indigo-900 shadow-xs border border-indigo-200'
+                    ? 'bg-white shadow-xs border'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
+                style={{
+                  color: !isMonochrome ? theme.primary : undefined,
+                  borderColor: !isMonochrome ? theme.lightBorder : undefined,
+                }}
               >
-                <Palette className="w-3.5 h-3.5 text-indigo-600" />
+                <Palette className="w-3.5 h-3.5" style={{ color: !isMonochrome ? theme.primary : undefined }} />
                 <span>Berwarna</span>
               </button>
             </div>
@@ -147,8 +153,12 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
             className={`relative rounded-3xl p-5 sm:p-6 overflow-hidden flex flex-col items-center text-center space-y-4 transition ${
               isMonochrome
                 ? 'bg-white text-slate-950 border-2 border-slate-900 shadow-sm print:border-black'
-                : 'bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl border border-indigo-500/30 print:bg-white print:text-slate-950 print:border-2 print:border-black'
+                : 'text-white shadow-xl border print:bg-white print:text-slate-950 print:border-2 print:border-black'
             }`}
+            style={{
+              background: !isMonochrome ? theme.gradient : undefined,
+              borderColor: !isMonochrome ? theme.lightBorder : undefined,
+            }}
           >
             {/* Top Brand Kop */}
             <div

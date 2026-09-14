@@ -61,6 +61,7 @@ import {
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
 import { exportToExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface SalaryViewProps {
   currentUser: UserSession;
@@ -89,6 +90,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
 }) => {
   const isOwner = currentUser.role === 'owner';
   const isTutor = currentUser.role === 'tutor';
+  const theme = getDocumentThemeStyles(settings.accentColor);
 
   // Date selection state (default to current month & year)
   const currentDate = new Date();
@@ -1526,9 +1528,10 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
                     onClick={() => setIsMonochromeSlip(false)}
                     className={`px-2 py-1 rounded font-bold flex items-center gap-1 transition cursor-pointer text-[11px] ${
                       !isMonochromeSlip
-                        ? 'bg-indigo-600 text-white shadow-xs'
+                        ? 'text-white shadow-xs'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
+                    style={{ backgroundColor: !isMonochromeSlip ? theme.primary : undefined }}
                     title="Format berwarna"
                   >
                     <Palette className="w-3 h-3" />
@@ -1560,8 +1563,9 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
                   className={`px-3 py-1.5 font-bold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md ${
                     isMonochromeSlip
                       ? 'bg-slate-800 hover:bg-black text-white border border-slate-600'
-                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                      : 'hover:opacity-90 text-white'
                   }`}
+                  style={{ backgroundColor: !isMonochromeSlip ? theme.primary : undefined }}
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Cetak PDF</span>
@@ -1581,17 +1585,26 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
             {/* Printable Slip Gaji Document Area */}
             <div ref={slipPrintRef} className="p-6 sm:p-8 space-y-6 text-slate-900 bg-white print:p-0 print:m-0">
               {/* Slip Kop Header */}
-              <div className="border-b-2 border-slate-900 pb-4 flex items-center justify-between">
+              <div 
+                className="border-b-2 pb-4 flex items-center justify-between"
+                style={{ borderColor: isMonochromeSlip ? '#020617' : theme.dark }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shrink-0 overflow-hidden p-0.5 ${
-                    isMonochromeSlip
-                      ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
-                      : 'bg-indigo-950 text-white shadow-xs print:bg-white print:border-2 print:border-black print:text-black'
-                  }`}>
+                  <div 
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shrink-0 overflow-hidden p-0.5 ${
+                      isMonochromeSlip
+                        ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
+                        : 'text-white shadow-xs print:bg-white print:border-2 print:border-black print:text-black'
+                    }`}
+                    style={{ backgroundColor: isMonochromeSlip ? '#ffffff' : theme.primary }}
+                  >
                     <BimbelLogo settings={settings} />
                   </div>
                   <div>
-                    <h1 className="text-xl font-black font-heading text-slate-950 tracking-tight">
+                    <h1 
+                      className="text-xl font-black font-heading tracking-tight"
+                      style={{ color: isMonochromeSlip ? '#020617' : theme.dark }}
+                    >
                       {settings.bimbelName || settings.sidebarFooterTitle || 'RUMAH BELAJAR'}
                     </h1>
                     <p className="text-xs text-slate-600 font-medium italic print:text-black">

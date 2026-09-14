@@ -25,6 +25,7 @@ import { formatDateIndo } from '../../utils/storage';
 import { exportElementToPng, printElement } from '../../utils/exportUtils';
 import { BimbelLogo } from '../common/BimbelLogo';
 import { sendWhatsAppDirect } from '../../utils/whatsapp';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface RegistrationReceiptModalProps {
   isOpen: boolean;
@@ -85,6 +86,7 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
   const bimbelPhone = settings?.phone || '0852-8232-4337';
   const ownerName = settings?.ownerName || 'Nanik Susilowati, M.Pd';
   const effectiveCity = settings?.city || (bimbelAddress.toLowerCase().includes('blora') ? 'Blora' : 'Blora');
+  const theme = getDocumentThemeStyles(settings?.accentColor);
 
   // PPDB Subtitle & Terms (Customizable by Owner, no trial default)
   const ppdbDocSubtitle =
@@ -195,9 +197,10 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
                 onClick={() => setIsMonochrome(false)}
                 className={`px-2 py-1 rounded font-bold flex items-center gap-1 transition cursor-pointer text-[11px] ${
                   !isMonochrome
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
+                style={{ backgroundColor: !isMonochrome ? theme.primary : undefined }}
                 title="Format berwarna"
               >
                 <Palette className="w-3 h-3" />
@@ -242,8 +245,9 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
               className={`px-3.5 py-1.5 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
                 isMonochrome
                   ? 'bg-slate-800 hover:bg-black text-white border border-slate-600'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                  : 'hover:opacity-90 text-white'
               }`}
+              style={{ backgroundColor: !isMonochrome ? theme.primary : undefined }}
               title="Cetak atau Simpan PDF (A4)"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -269,18 +273,27 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
             className="w-full max-w-[105mm] bg-white rounded-xl shadow-lg border border-slate-300 p-4 text-slate-900 space-y-3 print:shadow-none print:border-none print:p-2 print:m-0 print:rounded-none print:max-w-[105mm]"
           >
             {/* 1. KOP SURAT RESMI */}
-            <div className="border-b-2 border-slate-900 pb-2">
+            <div 
+              className="border-b-2 pb-2"
+              style={{ borderColor: isMonochrome ? '#020617' : theme.dark }}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg tracking-tight shrink-0 overflow-hidden p-0.5 ${
-                    isMonochrome
-                      ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
-                      : 'bg-indigo-950 text-white shadow-xs print:bg-white print:border-2 print:border-black print:text-black'
-                  }`}>
+                  <div 
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg tracking-tight shrink-0 overflow-hidden p-0.5 ${
+                      isMonochrome
+                        ? 'bg-white border-2 border-slate-900 text-slate-950 print:border-black print:text-black'
+                        : 'text-white shadow-xs print:bg-white print:border-2 print:border-black print:text-black'
+                    }`}
+                    style={{ backgroundColor: isMonochrome ? '#ffffff' : theme.primary }}
+                  >
                     <BimbelLogo settings={settings} />
                   </div>
                   <div>
-                    <h1 className="text-sm font-black text-slate-950 uppercase tracking-tight font-heading leading-tight">
+                    <h1 
+                      className="text-sm font-black uppercase tracking-tight font-heading leading-tight"
+                      style={{ color: isMonochrome ? '#020617' : theme.dark }}
+                    >
                       {bimbelName}
                     </h1>
                     <p className={`text-[9px] font-bold italic leading-tight ${

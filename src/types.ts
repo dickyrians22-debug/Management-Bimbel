@@ -64,6 +64,8 @@ export interface BimbelSettings {
   sidebarFooterTagline?: string;
   sidebarFooterNote?: string;
   accentColor?: string; // 'indigo' | 'blue' | 'emerald' | 'violet' | 'rose' | 'amber'
+  topbarStyle?: 'theme-solid' | 'theme-tint' | 'dark' | 'light-clean' | 'frosted-glass' | 'vibrant-gradient' | 'aurora-glow' | string; // Gaya warna navbar bar atas
+  accentOpacity?: number; // Tingkat ketebalan / opacity warna tema (20 - 100%)
 
   // 3 Kotak Keunggulan / Pilar Bimbel di Portal Publik
   programHighlights?: {

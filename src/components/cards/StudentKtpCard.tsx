@@ -4,6 +4,7 @@ import { Download, Printer, QrCode, Scissors, Check, Sparkles } from 'lucide-rea
 import { Student, BimbelSettings } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 export interface StudentKtpCardProps {
   student: Student;
@@ -35,6 +36,7 @@ export const StudentKtpCard: React.FC<StudentKtpCardProps> = ({
   const bimbelPhone = settings?.phone || '-';
   const effectiveCity = settings?.city || (bimbelAddress.toLowerCase().includes('blora') ? 'Blora' : 'Blora');
   const qrPayload = student.code;
+  const theme = getDocumentThemeStyles(settings?.accentColor);
 
   return (
     <div className="flex flex-col items-center gap-1.5 group">
@@ -117,8 +119,11 @@ export const StudentKtpCard: React.FC<StudentKtpCardProps> = ({
             className={`h-[11mm] px-2.5 py-1 flex items-center justify-between shrink-0 relative z-10 ${
               isMonochrome
                 ? 'bg-white border-b-2 border-slate-900 text-slate-950'
-                : 'bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white print:bg-white print:text-slate-950 print:border-b-2 print:border-slate-900'
+                : 'text-white print:bg-white print:text-slate-950 print:border-b-2 print:border-slate-900'
             }`}
+            style={{
+              background: !isMonochrome ? theme.gradient : undefined,
+            }}
           >
             <div className="flex items-center gap-1.5 min-w-0">
               <div

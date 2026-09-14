@@ -53,6 +53,7 @@ import {
   Calendar,
   Clock,
   Image as ImageIcon,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   UserAccount,
@@ -83,7 +84,7 @@ import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import { ResetFactoryModal } from '../modals/ResetFactoryModal';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { BimbelLogo } from '../common/BimbelLogo';
-import { THEME_PRESETS, resolvePrimaryColor, adjustColor, applyThemeVariables } from '../../utils/theme';
+import { resolvePrimaryColor, adjustColor, applyThemeVariables, getDocumentThemeStyles } from '../../utils/theme';
 
 interface SettingsViewProps {
   users: UserAccount[];
@@ -202,6 +203,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     sidebarFooterTagline: settings.sidebarFooterTagline || settings.tagline || '“Belajar Sampai Paham”',
     sidebarFooterNote: settings.sidebarFooterNote || 'Data tersimpan aman di LocalStorage browser',
     accentColor: settings.accentColor || 'indigo',
+    topbarStyle: settings.topbarStyle || 'theme-tint',
+    accentOpacity: typeof settings.accentOpacity === 'number' ? settings.accentOpacity : 100,
     portalBannerBadge: settings.portalBannerBadge || 'Pusat Layanan Terpadu Siswa & Calon Siswa Bimbel',
     portalBannerTitle: settings.portalBannerTitle || '',
     portalBannerSubtitle: settings.portalBannerSubtitle || 'Daftarkan ananda secara online, pantau presensi dan tanggal kehadiran harian, serta cek status iuran les secara transparan kapan saja.',
@@ -372,6 +375,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       sidebarFooterTagline: settings.sidebarFooterTagline || '“Belajar Sampai Paham”',
       sidebarFooterNote: settings.sidebarFooterNote || 'Data tersimpan aman di LocalStorage browser',
       accentColor: settings.accentColor || 'indigo',
+      topbarStyle: settings.topbarStyle || 'theme-tint',
+      accentOpacity: typeof settings.accentOpacity === 'number' ? settings.accentOpacity : 100,
       ownerDashboardBadge: settings.ownerDashboardBadge || 'Executive Dashboard (Owner Access)',
       ownerDashboardTitle: settings.ownerDashboardTitle || '',
       ownerDashboardMessage: settings.ownerDashboardMessage || 'Pantau metrik finansial, absensi digital real-time, dan pembukuan tahunan dalam satu pintu.',
@@ -1172,6 +1177,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       sidebarFooterTagline: appearanceForm.sidebarFooterTagline,
       sidebarFooterNote: appearanceForm.sidebarFooterNote,
       accentColor: appearanceForm.accentColor,
+      topbarStyle: appearanceForm.topbarStyle,
+      accentOpacity: appearanceForm.accentOpacity,
       portalBannerBadge: appearanceForm.portalBannerBadge,
       portalBannerTitle: appearanceForm.portalBannerTitle,
       portalBannerSubtitle: appearanceForm.portalBannerSubtitle,
@@ -4923,53 +4930,355 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* SECTION: Kotak Warna Pilihan (Preset Swatches) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-                  1. Pilih Kotak Warna Cepat (Preset Tema)
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {THEME_PRESETS.map((preset) => {
-                    const isSelected =
-                      appearanceForm.accentColor === preset.id ||
-                      appearanceForm.accentColor?.toLowerCase() === preset.primaryHex.toLowerCase();
+              {/* SECTION 1: Pilihan Warna Tema Sistem (Color Picker & Kode HEX) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Paintbrush className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>1. Pilihan Warna Tema Sistem (Color Picker &amp; Kode HEX)</span>
+                    </h5>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Klik kotak warna untuk membuka palet visual browser, atau ketik langsung kode HEX 6 digit (contoh: #0EA5E9, #E91E63).
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs">
+                      <input
+                        type="color"
+                        value={resolvePrimaryColor(appearanceForm.accentColor)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAppearanceForm({ ...appearanceForm, accentColor: val });
+                          applyThemeVariables(val, appearanceForm.accentOpacity);
+                          onSaveSettings({ ...settings, accentColor: val });
+                        }}
+                        className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
+                        title="Klik untuk memilih warna"
+                      />
+                      <input
+                        type="text"
+                        maxLength={7}
+                        value={
+                          appearanceForm.accentColor?.startsWith('#')
+                            ? appearanceForm.accentColor
+                            : resolvePrimaryColor(appearanceForm.accentColor)
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          setAppearanceForm({ ...appearanceForm, accentColor: val });
+                          if (/^#[0-9A-F]{6}$/i.test(val)) {
+                            applyThemeVariables(val, appearanceForm.accentOpacity);
+                            onSaveSettings({ ...settings, accentColor: val });
+                          }
+                        }}
+                        placeholder="#4F46E5"
+                        className="w-24 text-xs font-mono font-bold text-slate-800 uppercase focus:outline-hidden"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppearanceForm({ ...appearanceForm, accentColor: 'indigo', accentOpacity: 100 });
+                        applyThemeVariables('indigo', 100);
+                        onSaveSettings({ ...settings, accentColor: 'indigo', accentOpacity: 100 });
+                      }}
+                      className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0"
+                      title="Kembalikan ke warna bawaan sistem"
+                    >
+                      Reset Bawaan
+                    </button>
+                  </div>
+                </div>
+
+                {/* Baris Pilihan Cepat Warna Populer (Mini Dots yang bersih & ringkas) */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80 flex-wrap">
+                  <span className="text-[11px] font-bold text-slate-500">Pilihan Cepat Populer:</span>
+                  {[
+                    { name: 'Indigo', hex: '#4F46E5' },
+                    { name: 'Ocean Blue', hex: '#0284C7' },
+                    { name: 'Teal', hex: '#0D9488' },
+                    { name: 'Emerald', hex: '#10B981' },
+                    { name: 'Amber Gold', hex: '#F59E0B' },
+                    { name: 'Flame Orange', hex: '#F97316' },
+                    { name: 'Rose Red', hex: '#F43F5E' },
+                    { name: 'Fuchsia Pink', hex: '#D946EF' },
+                    { name: 'Purple', hex: '#8B5CF6' },
+                    { name: 'Slate Gray', hex: '#475569' },
+                  ].map((dot) => {
+                    const isDotActive = resolvePrimaryColor(appearanceForm.accentColor).toLowerCase() === dot.hex.toLowerCase();
                     return (
                       <button
-                        key={preset.id}
+                        key={dot.hex}
                         type="button"
                         onClick={() => {
-                          setAppearanceForm({ ...appearanceForm, accentColor: preset.id });
-                          applyThemeVariables(preset.id);
+                          setAppearanceForm({ ...appearanceForm, accentColor: dot.hex });
+                          applyThemeVariables(dot.hex, appearanceForm.accentOpacity);
+                          onSaveSettings({ ...settings, accentColor: dot.hex });
                         }}
-                        className={`relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-2.5 ${
+                        title={`${dot.name} (${dot.hex})`}
+                        className={`w-6 h-6 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                          isDotActive ? 'ring-2 ring-slate-900 ring-offset-2 scale-110' : 'hover:scale-110'
+                        }`}
+                        style={{ backgroundColor: dot.hex }}
+                      >
+                        {isDotActive && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SECTION 2: Pengatur Ketebalan & Opacity Warna */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Percent className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>2. Pengatur Ketebalan &amp; Opacity Warna Tema</span>
+                    </h5>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Atur tingkat kepekatan / transparansi warna aksen dan bar atas untuk kenyamanan mata dan kontras visual.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-500">Ketebalan:</span>
+                    <span 
+                      className="px-2.5 py-1 rounded-xl text-xs font-mono font-black text-white shadow-xs"
+                      style={{ 
+                        backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
+                        opacity: Math.max(0.4, (appearanceForm.accentOpacity || 100) / 100)
+                      }}
+                    >
+                      {appearanceForm.accentOpacity || 100}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Slider and Preset Buttons */}
+                <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+                      <span>Lembut (Pastel 20%)</span>
+                      <span className="font-bold text-slate-800 font-mono">Nilai Opacity: {appearanceForm.accentOpacity || 100}%</span>
+                      <span>Solid Pekat (100%)</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={20}
+                      max={100}
+                      step={5}
+                      value={appearanceForm.accentOpacity || 100}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setAppearanceForm({ ...appearanceForm, accentOpacity: val });
+                        applyThemeVariables(appearanceForm.accentColor, val);
+                        onSaveSettings({ ...settings, accentOpacity: val });
+                      }}
+                      className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+
+                  {/* Pilihan Cepat Persentase Ketebalan */}
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <span className="text-[11px] font-bold text-slate-400">Pilihan Cepat:</span>
+                    {[
+                      { label: '40% (Lembut / Pastel)', value: 40 },
+                      { label: '60% (Sedang)', value: 60 },
+                      { label: '80% (Pekat / Bold)', value: 80 },
+                      { label: '100% (Solid Penuh)', value: 100 },
+                    ].map((preset) => {
+                      const isActive = (appearanceForm.accentOpacity || 100) === preset.value;
+                      return (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          onClick={() => {
+                            setAppearanceForm({ ...appearanceForm, accentOpacity: preset.value });
+                            applyThemeVariables(appearanceForm.accentColor, preset.value);
+                            onSaveSettings({ ...settings, accentOpacity: preset.value });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Pilihan Gaya Warna Bar Atas (Header / Navbar) */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
+                    <span>3. Gaya Warna Bar Atas (Header / Navbar Utama)</span>
+                  </h5>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Pilih bagaimana warna tema diterapkan pada bar navigasi paling atas di seluruh halaman aplikasi.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {[
+                    {
+                      id: 'theme-tint',
+                      name: 'Gradien Gelap Beraksen',
+                      badge: 'Populer Default',
+                      badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                      description: 'Nuansa navy malam elegan berpadu aksen tema di sudut kiri & strip warna menyala.',
+                      getBarStyle: (theme: any) => ({
+                        background: `linear-gradient(90deg, ${theme.dark} 0%, #0f172a 70%, #020617 100%)`,
+                        borderBottom: `2px solid ${theme.primary}`,
+                      }),
+                      dotColor: (theme: any) => theme.primary,
+                      isLight: false,
+                    },
+                    {
+                      id: 'theme-solid',
+                      name: 'Warna Tema Penuh (Solid)',
+                      badge: 'Cerah & Tegas',
+                      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                      description: 'Seluruh bar navigasi atas berubah cerah mengikuti warna tema yang Anda tentukan.',
+                      getBarStyle: (theme: any) => ({
+                        backgroundColor: theme.primaryRgba,
+                        borderBottom: `2px solid ${theme.dark}`,
+                      }),
+                      dotColor: () => '#ffffff',
+                      isLight: false,
+                    },
+                    {
+                      id: 'light-clean',
+                      name: 'Putih Bersih Minimalis',
+                      badge: 'Modern Light',
+                      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
+                      description: 'Gaya modern terang ala Stripe & Notion dengan teks gelap tajam dan garis bawah tema.',
+                      getBarStyle: (theme: any) => ({
+                        backgroundColor: '#ffffff',
+                        borderBottom: `2px solid ${theme.primary}`,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                      }),
+                      dotColor: (theme: any) => theme.primary,
+                      isLight: true,
+                    },
+                    {
+                      id: 'frosted-glass',
+                      name: 'Kaca Transparan (Frosted)',
+                      badge: 'macOS Glass',
+                      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+                      description: 'Efek kaca semi-transparan ber-blur mewah dengan bayangan halus elegan di atas konten.',
+                      getBarStyle: (theme: any) => ({
+                        backgroundColor: 'rgba(15, 23, 42, 0.72)',
+                        backdropFilter: 'blur(8px)',
+                        borderBottom: `1px solid rgba(255, 255, 255, 0.15)`,
+                        boxShadow: `0 4px 14px rgba(0,0,0,0.4), 0 1px 0 ${theme.primary}50`,
+                      }),
+                      dotColor: (theme: any) => theme.light,
+                      isLight: false,
+                    },
+                    {
+                      id: 'vibrant-gradient',
+                      name: 'Gradien Cerah Dinamis',
+                      badge: 'Energik & Ceria',
+                      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+                      description: 'Paduan dua gradien spektrum menyudut yang cerah, ramah, dan penuh gairah belajar.',
+                      getBarStyle: (theme: any) => ({
+                        background: `linear-gradient(115deg, ${theme.primary} 0%, ${theme.light} 45%, ${theme.dark} 100%)`,
+                        borderBottom: '2px solid rgba(255, 255, 255, 0.4)',
+                        boxShadow: `0 3px 12px ${theme.primary}40`,
+                      }),
+                      dotColor: () => '#ffffff',
+                      isLight: false,
+                    },
+                    {
+                      id: 'aurora-glow',
+                      name: 'Pendar Aurora Malam',
+                      badge: 'Dark Luxury',
+                      badgeColor: 'bg-violet-50 text-violet-700 border-violet-200',
+                      description: 'Latar midnight gelap pekat dengan pendar cahaya radial warna tema di sudut logo & profil.',
+                      getBarStyle: (theme: any) => ({
+                        background: `radial-gradient(circle at 10% 50%, ${theme.primary}50 0%, transparent 50%), radial-gradient(circle at 90% 50%, ${theme.dark}60 0%, transparent 50%), #090d16`,
+                        borderBottom: `1px solid ${theme.primary}70`,
+                      }),
+                      dotColor: (theme: any) => theme.primary,
+                      isLight: false,
+                    },
+                    {
+                      id: 'dark',
+                      name: 'Slate Gelap Netral',
+                      badge: 'Netral Klasik',
+                      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+                      description: 'Warna slate gelap standar netral dengan strip warna tema minimalis di tepi atas.',
+                      getBarStyle: () => ({
+                        backgroundColor: '#0f172a',
+                        borderBottom: '1px solid #1e293b',
+                      }),
+                      dotColor: () => '#94a3b8',
+                      isLight: false,
+                    },
+                  ].map((styleOption) => {
+                    const isSelected = (appearanceForm.topbarStyle || 'theme-tint') === styleOption.id;
+                    const themeObj = getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity);
+                    const barStyle = styleOption.getBarStyle(themeObj);
+                    const dot = styleOption.dotColor(themeObj);
+
+                    return (
+                      <button
+                        key={styleOption.id}
+                        type="button"
+                        onClick={() => {
+                          setAppearanceForm({ ...appearanceForm, topbarStyle: styleOption.id });
+                          onSaveSettings({ ...settings, topbarStyle: styleOption.id });
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-2 relative ${
                           isSelected
-                            ? 'border-slate-900 bg-slate-50 shadow-md ring-2 ring-slate-900/10'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
+                            ? 'border-slate-900 bg-white shadow-md ring-2 ring-slate-900/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-6 h-6 rounded-xl shadow-xs flex items-center justify-center text-white"
-                              style={{ backgroundColor: preset.primaryHex }}
-                            >
-                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                            </span>
-                            <span className="text-xs font-bold text-slate-900">{preset.name}</span>
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-bold text-slate-900 truncate">{styleOption.name}</span>
                           </div>
+                          {isSelected && (
+                            <span className="p-0.5 rounded-full bg-emerald-50 text-emerald-600 shrink-0">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </span>
+                          )}
                         </div>
 
-                        <p className="text-[11px] text-slate-500 leading-tight">
-                          {preset.description}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${styleOption.badgeColor}`}>
+                            {styleOption.badge}
+                          </span>
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 leading-tight">
+                          {styleOption.description}
                         </p>
 
-                        <div className="flex items-center gap-1.5 pt-1 mt-auto border-t border-slate-100">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ backgroundColor: preset.primaryHex }}
-                          />
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {preset.primaryHex.toUpperCase()}
+                        <div 
+                          className="h-7 rounded-lg w-full mt-1 flex items-center justify-between px-2.5 transition-all duration-300"
+                          style={barStyle}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" 
+                              style={{ backgroundColor: dot }} 
+                            />
+                            <span className={`text-[9px] font-black tracking-tight ${styleOption.isLight ? 'text-slate-900' : 'text-white'}`}>
+                              BIMBEL
+                            </span>
+                          </div>
+                          <span className={`text-[8px] font-mono ${styleOption.isLight ? 'text-slate-500' : 'text-slate-300'}`}>
+                            Live
                           </span>
                         </div>
                       </button>
@@ -4978,75 +5287,128 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* SECTION: Custom Hex Color Picker */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                    <Paintbrush className="w-3.5 h-3.5 text-slate-600" />
-                    <span>2. Atau Pilih Warna Kustom Bebas (Color Picker &amp; HEX)</span>
-                  </h5>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Klik kotak warna untuk membuka color picker browser, atau ketik langsung kode HEX 6 digit (contoh: #0EA5E9).
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="relative flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs">
-                    <input
-                      type="color"
-                      value={resolvePrimaryColor(appearanceForm.accentColor)}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAppearanceForm({ ...appearanceForm, accentColor: val });
-                        applyThemeVariables(val);
-                      }}
-                      className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
-                      title="Klik untuk memilih warna"
-                    />
-                    <input
-                      type="text"
-                      maxLength={7}
-                      value={
-                        appearanceForm.accentColor?.startsWith('#')
-                          ? appearanceForm.accentColor
-                          : resolvePrimaryColor(appearanceForm.accentColor)
-                      }
-                      onChange={(e) => {
-                        const val = e.target.value.trim();
-                        setAppearanceForm({ ...appearanceForm, accentColor: val });
-                        if (/^#[0-9A-F]{6}$/i.test(val)) {
-                          applyThemeVariables(val);
-                        }
-                      }}
-                      placeholder="#4F46E5"
-                      className="w-24 text-xs font-mono font-bold text-slate-800 uppercase focus:outline-hidden"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAppearanceForm({ ...appearanceForm, accentColor: 'indigo' });
-                      applyThemeVariables('indigo');
-                    }}
-                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0"
-                    title="Kembalikan ke warna bawaan sistem"
-                  >
-                    Reset Bawaan
-                  </button>
-                </div>
-              </div>
-
-              {/* SECTION: Live Preview Panel */}
-              <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white space-y-3">
+              {/* SECTION 4: Live Preview Panel */}
+              <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Pratinjau Langsung (Live Preview Komponen Tema)</span>
+                    <span>4. Pratinjau Langsung (Live Preview Komponen Tema)</span>
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    Efek langsung terlihat di Sidebar dan tombol sistem
+                    Warna &amp; Opacity langsung aktif di Bar Atas, Sidebar, Dokumen Resmi, dan tombol
                   </span>
+                </div>
+
+                {/* Preview Mini Topbar */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pratinjau Bar Atas (Header)</p>
+                  {(() => {
+                    const currentStyle = appearanceForm.topbarStyle || 'theme-tint';
+                    const isPreviewLight = currentStyle === 'light-clean';
+                    const themeObj = getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity);
+
+                    const getMiniTopbarBg = () => {
+                      switch (currentStyle) {
+                        case 'theme-solid':
+                          return {
+                            background: themeObj.primaryRgba,
+                            borderBottom: `2px solid ${themeObj.dark}`,
+                          };
+                        case 'light-clean':
+                          return {
+                            background: '#ffffff',
+                            borderBottom: `2px solid ${themeObj.primary}`,
+                            boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                          };
+                        case 'frosted-glass':
+                          return {
+                            background: 'rgba(15, 23, 42, 0.72)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                          };
+                        case 'vibrant-gradient':
+                          return {
+                            background: `linear-gradient(115deg, ${themeObj.primary} 0%, ${themeObj.light} 45%, ${themeObj.dark} 100%)`,
+                            borderBottom: '2px solid rgba(255, 255, 255, 0.4)',
+                          };
+                        case 'aurora-glow':
+                          return {
+                            background: `radial-gradient(circle at 10% 50%, ${themeObj.primary}45 0%, transparent 45%), radial-gradient(circle at 90% 50%, ${themeObj.dark}60 0%, transparent 45%), #090d16`,
+                            borderBottom: `1px solid ${themeObj.primary}70`,
+                          };
+                        case 'dark':
+                          return {
+                            background: '#0f172a',
+                            borderBottom: '1px solid #1e293b',
+                          };
+                        case 'theme-tint':
+                        default:
+                          return {
+                            background: `linear-gradient(90deg, ${themeObj.dark} 0%, #0f172a 65%, #020617 100%)`,
+                            borderBottom: `2px solid ${themeObj.primaryRgba}`,
+                          };
+                      }
+                    };
+
+                    return (
+                      <div 
+                        className={`w-full rounded-xl overflow-hidden shadow-md px-3 py-2 flex items-center justify-between transition-all duration-300 ${
+                          isPreviewLight ? 'text-slate-800' : 'text-white'
+                        }`}
+                        style={getMiniTopbarBg()}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-xs"
+                            style={{
+                              backgroundColor: currentStyle === 'theme-solid'
+                                ? themeObj.dark
+                                : resolvePrimaryColor(appearanceForm.accentColor)
+                            }}
+                          >
+                            Σ
+                          </div>
+                          <span className={`text-xs font-black tracking-tight ${isPreviewLight ? 'text-slate-900' : 'text-white'}`}>
+                            {appearanceForm.sidebarFooterTitle || 'RUMAH BELAJAR'}
+                          </span>
+                          <span 
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded border"
+                            style={{
+                              backgroundColor: isPreviewLight ? `${themeObj.primary}15` : `${resolvePrimaryColor(appearanceForm.accentColor)}30`,
+                              color: isPreviewLight ? themeObj.dark : '#ffffff',
+                              borderColor: `${resolvePrimaryColor(appearanceForm.accentColor)}60`,
+                            }}
+                          >
+                            {appearanceForm.appVersionBadge || 'v2.6 PRO'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="text-[10px] font-bold px-2 py-1 rounded-lg border"
+                            style={{
+                              backgroundColor: isPreviewLight 
+                                ? '#f1f5f9' 
+                                : currentStyle === 'theme-solid' 
+                                ? 'rgba(0,0,0,0.2)' 
+                                : `${resolvePrimaryColor(appearanceForm.accentColor)}20`,
+                              borderColor: isPreviewLight 
+                                ? '#cbd5e1' 
+                                : currentStyle === 'theme-solid' 
+                                ? 'rgba(255,255,255,0.3)' 
+                                : `${resolvePrimaryColor(appearanceForm.accentColor)}60`,
+                              color: isPreviewLight ? '#0f172a' : '#ffffff',
+                            }}
+                          >
+                            Portal Publik
+                          </span>
+                          <span className={`text-[10px] font-mono ${isPreviewLight ? 'text-slate-500' : 'text-slate-300'}`}>12:00 WIB</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -5057,8 +5419,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       type="button"
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
                       style={{
-                        backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
-                        boxShadow: `0 4px 12px ${resolvePrimaryColor(appearanceForm.accentColor)}40`,
+                        backgroundColor: getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity).primaryRgba,
+                        boxShadow: `0 4px 12px ${getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity).primaryRgba}`,
                       }}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -5072,8 +5434,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <div
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-between"
                       style={{
-                        backgroundColor: resolvePrimaryColor(appearanceForm.accentColor),
-                        boxShadow: `0 4px 12px ${resolvePrimaryColor(appearanceForm.accentColor)}40`,
+                        backgroundColor: getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity).primaryRgba,
+                        boxShadow: `0 4px 12px ${getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity).primaryRgba}`,
                       }}
                     >
                       <div className="flex items-center gap-2">
@@ -5099,7 +5461,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </span>
                       <span
                         className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white"
-                        style={{ backgroundColor: resolvePrimaryColor(appearanceForm.accentColor) }}
+                        style={{ backgroundColor: getDocumentThemeStyles(appearanceForm.accentColor, appearanceForm.accentOpacity).primaryRgba }}
                       >
                         Pro v2.6
                       </span>

@@ -463,8 +463,8 @@ export default function App() {
 
   // Apply Theme Color to root CSS variables dynamically
   useEffect(() => {
-    applyThemeVariables(settings.accentColor);
-  }, [settings.accentColor]);
+    applyThemeVariables(settings.accentColor, settings.accentOpacity);
+  }, [settings.accentColor, settings.accentOpacity]);
 
   // --- Handlers: Auth ---
   const handleLoginSuccess = (user: UserSession) => {

@@ -4,6 +4,7 @@ import { IncomeRecord, Student, BimbelSettings } from '../../types';
 import { formatRupiah, getMonthNameIndo, formatDateIndo } from '../../utils/storage';
 import { exportElementToPng, printElement } from '../../utils/exportUtils';
 import { BimbelLogo } from '../common/BimbelLogo';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const bimbelAddress = settings?.address || 'Karang Muso 06/02 Bicak, Todanan, Blora, Jawa Tengah';
   const bimbelPhone = settings?.phone || '0852-8232-4337';
   const ownerName = settings?.ownerName || 'Nanik Susilowati, M.Pd';
+  const theme = getDocumentThemeStyles(settings?.accentColor);
 
   const handleDownloadImage = async () => {
     if (!receiptCardRef.current) return;
@@ -105,9 +107,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 onClick={() => setIsMonochrome(false)}
                 className={`px-2.5 py-1 rounded font-bold flex items-center gap-1 transition cursor-pointer ${
                   !isMonochrome
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
+                style={{ backgroundColor: !isMonochrome ? theme.primary : undefined }}
                 title="Format kwitansi berwarna asli"
               >
                 <Palette className="w-3 h-3" />
@@ -132,7 +135,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               id="btn-download-receipt-png"
               onClick={handleDownloadImage}
               disabled={isExportingImage}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              className="px-3 py-1.5 hover:opacity-90 active:scale-95 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              style={{ backgroundColor: theme.primary }}
               title="Unduh gambar PNG (format center A6 presisi) untuk dikirim via WhatsApp"
             >
               {isExportingImage ? (
@@ -180,15 +184,24 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             } print:p-2 print:m-0 print:max-w-[105mm] print:shadow-none print:rounded-none`}
           >
             {/* Header Kop */}
-            <div className={`flex items-center justify-between border-b-2 ${isMonochrome ? 'border-slate-950' : 'border-indigo-900'} pb-3`}>
+            <div 
+              className="flex items-center justify-between border-b-2 pb-3"
+              style={{ borderColor: isMonochrome ? '#020617' : theme.dark }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl font-heading overflow-hidden shrink-0 ${
-                  isMonochrome ? 'bg-white text-slate-950 border-2 border-slate-950' : 'bg-indigo-900 text-white shadow-xs'
-                }`}>
+                <div 
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl font-heading overflow-hidden shrink-0 ${
+                    isMonochrome ? 'bg-white text-slate-950 border-2 border-slate-950' : 'text-white shadow-xs'
+                  }`}
+                  style={{ backgroundColor: isMonochrome ? '#ffffff' : theme.primary }}
+                >
                   <BimbelLogo settings={settings} />
                 </div>
                 <div>
-                  <h2 className={`text-base font-black tracking-tight leading-tight ${isMonochrome ? 'text-slate-950' : 'text-indigo-950'}`}>
+                  <h2 
+                    className="text-base font-black tracking-tight leading-tight"
+                    style={{ color: isMonochrome ? '#020617' : theme.dark }}
+                  >
                     {bimbelName}
                   </h2>
                   <p className={`text-[10px] font-bold uppercase tracking-wider leading-tight ${isMonochrome ? 'text-slate-700' : 'text-amber-600'}`}>
@@ -257,7 +270,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               )}
               <div className="flex justify-between py-1 border-b border-slate-100">
                 <span className="text-slate-500 w-36 shrink-0">Untuk Pembayaran:</span>
-                <span className={`font-bold text-right flex-1 ${isMonochrome ? 'text-slate-950' : 'text-indigo-900'}`}>
+                <span 
+                  className="font-bold text-right flex-1"
+                  style={{ color: isMonochrome ? '#020617' : theme.dark }}
+                >
                   {income.incomeCategory === 'session_pack'
                     ? `Paket ${income.sessionsCount || 8} Sesi (${getMonthNameIndo(income.accrualMonth)} ${income.accrualYear})`
                     : income.incomeCategory === 'registration'
