@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Printer, CheckCircle2, Download, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { X, Printer, CheckCircle2, Download, Image as ImageIcon, Loader2, Palette } from 'lucide-react';
 import { ExpenseRecord, BimbelSettings } from '../../types';
 import { formatRupiah, formatDateIndo, angkaTerbilang, normalizeExpenseRefNumber } from '../../utils/storage';
 import { exportElementToPng, printElement } from '../../utils/exportUtils';
@@ -19,6 +19,7 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
   settings,
 }) => {
   const [isExportingImage, setIsExportingImage] = useState(false);
+  const [isMonochrome, setIsMonochrome] = useState(false);
   const receiptCardRef = useRef<HTMLDivElement>(null);
 
   // Toggle modal-receipt-open on body for print isolation
@@ -48,9 +49,10 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
 
   const handlePrint = () => {
     if (receiptCardRef.current) {
+      const modeSuffix = isMonochrome ? ' (B&W)' : '';
       printElement(
         receiptCardRef.current,
-        `Bukti_Kas_Keluar_${refNumber}`,
+        `Bukti_Kas_Keluar_${refNumber}${modeSuffix}`,
         { pageSize: 'A6 portrait', margin: '4mm', maxWidth: '105mm' }
       );
     } else {
@@ -93,8 +95,12 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
     if (!receiptCardRef.current) return;
     setIsExportingImage(true);
     try {
-      const fileName = `BKK_${refNumber}_${expense.category || 'KasKeluar'}`;
-      await exportElementToPng(receiptCardRef.current, fileName);
+      const modeSuffix = isMonochrome ? '_BW' : '';
+      const fileName = `BKK_${refNumber}_${expense.category || 'KasKeluar'}${modeSuffix}`;
+      await exportElementToPng(receiptCardRef.current, fileName, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal unduh gambar BKK:', err);
     } finally {
@@ -120,6 +126,36 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
+            {/* Opsi Warna vs Hitam Putih (B&W) */}
+            <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setIsMonochrome(false)}
+                className={`px-2.5 py-1 rounded font-bold flex items-center gap-1 transition cursor-pointer ${
+                  !isMonochrome
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Format BKK berwarna asli"
+              >
+                <Palette className="w-3 h-3" />
+                <span>Warna</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMonochrome(true)}
+                className={`px-2.5 py-1 rounded font-bold flex items-center gap-1 transition cursor-pointer ${
+                  isMonochrome
+                    ? 'bg-white text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Format monokrom hitam putih (hemat tinta printer & kontras tinggi)"
+              >
+                <span className="w-2 h-2 rounded-full bg-slate-950 border border-slate-400 inline-block" />
+                <span>B&W</span>
+              </button>
+            </div>
+
             {/* Opsi Cepat Pilihan Penandatangan (Sesuai Profil Lembaga) */}
             <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[11px]">
               <button
@@ -127,7 +163,7 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
                 onClick={() => setSignerType('finance')}
                 className={`px-2 py-1 rounded-md font-bold transition cursor-pointer ${
                   signerType === 'finance'
-                    ? 'bg-rose-600 text-white shadow-xs'
+                    ? 'bg-slate-700 text-white shadow-xs'
                     : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
                 }`}
                 title={`Tanda tangan: ${financeOfficerTitle}`}
@@ -139,7 +175,7 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
                 onClick={() => setSignerType('owner')}
                 className={`px-2 py-1 rounded-md font-bold transition cursor-pointer ${
                   signerType === 'owner'
-                    ? 'bg-rose-600 text-white shadow-xs'
+                    ? 'bg-slate-700 text-white shadow-xs'
                     : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
                 }`}
                 title={`Tanda tangan: ${ownerTitle}`}
@@ -153,7 +189,7 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
               onClick={handleDownloadImage}
               disabled={isExportingImage}
               className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Unduh gambar PNG Bukti Kas Keluar"
+              title="Unduh gambar PNG (format center A6 presisi) Bukti Kas Keluar"
             >
               {isExportingImage ? (
                 <>
@@ -170,7 +206,11 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
             <button
               id="btn-print-expense-receipt"
               onClick={handlePrint}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
+                isMonochrome
+                  ? 'bg-slate-800 hover:bg-black border border-slate-600'
+                  : 'bg-rose-600 hover:bg-rose-700'
+              }`}
               title="Cetak Bukti Kas Keluar ke printer atau simpan sebagai PDF"
             >
               <Printer className="w-4 h-4" />
@@ -185,137 +225,168 @@ export const ExpenseReceiptModal: React.FC<ExpenseReceiptModalProps> = ({
           </div>
         </div>
 
-        {/* Printable & Exportable Kwitansi Kas Keluar Content (Standard A6: 105mm x 148mm) */}
-        <div
-          ref={receiptCardRef}
-          id="expense-receipt-printable-content"
-          className="p-5 sm:p-6 bg-white text-slate-800 space-y-3.5 mx-auto max-w-[105mm] border border-slate-200 sm:rounded-b-2xl print:border-0 print:p-2 print:m-0 print:max-w-[105mm]"
-        >
-          {/* Kop Lembaga */}
-          <div className="flex items-center justify-between border-b-2 border-rose-900 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-lg bg-rose-900 text-white flex items-center justify-center font-black text-xl font-heading shadow-xs overflow-hidden shrink-0">
-                <BimbelLogo settings={settings} />
+        {/* Preview Canvas Container */}
+        <div className="p-4 sm:p-6 bg-slate-100/70 flex justify-center overflow-x-auto">
+          {/* Printable & Exportable Kwitansi Kas Keluar Content (Standard A6: 105mm x 148mm) */}
+          <div
+            ref={receiptCardRef}
+            id="expense-receipt-printable-content"
+            className={`w-full max-w-[105mm] bg-white text-slate-800 p-5 sm:p-6 space-y-3.5 rounded-xl shadow-xs border ${
+              isMonochrome ? 'border-slate-900 print:border-0' : 'border-slate-200 print:border-0'
+            } print:p-2 print:m-0 print:max-w-[105mm] print:shadow-none print:rounded-none`}
+          >
+            {/* Kop Lembaga */}
+            <div className={`flex items-center justify-between border-b-2 ${isMonochrome ? 'border-slate-950' : 'border-rose-900'} pb-3`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl font-heading overflow-hidden shrink-0 ${
+                  isMonochrome ? 'bg-white text-slate-950 border-2 border-slate-950' : 'bg-rose-900 text-white shadow-xs'
+                }`}>
+                  <BimbelLogo settings={settings} />
+                </div>
+                <div>
+                  <h2 className={`text-base font-black tracking-tight leading-tight ${isMonochrome ? 'text-slate-950' : 'text-slate-950'}`}>
+                    {bimbelName}
+                  </h2>
+                  <p className={`text-[10px] font-bold uppercase tracking-wider leading-tight ${isMonochrome ? 'text-slate-700' : 'text-rose-700'}`}>
+                    {bimbelTagline}
+                  </p>
+                  <p className={`text-[9px] leading-tight ${isMonochrome ? 'text-slate-600' : 'text-slate-500'}`}>
+                    {bimbelAddress} • Telp/WA: {bimbelPhone}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-black tracking-tight text-slate-950 leading-tight">{bimbelName}</h2>
-                <p className="text-[10px] font-bold text-rose-700 uppercase tracking-wider leading-tight">
-                  {bimbelTagline}
-                </p>
-                <p className="text-[9px] text-slate-500 leading-tight">
-                  {bimbelAddress} • Telp/WA: {bimbelPhone}
+              <div className="text-right shrink-0">
+                <span className={`inline-block px-2 py-0.5 font-extrabold text-[10px] rounded-full uppercase tracking-wider border ${
+                  isMonochrome
+                    ? 'bg-white text-slate-950 border-2 border-slate-950 font-black'
+                    : 'bg-rose-100 text-rose-900 border-rose-300'
+                }`}>
+                  KAS KELUAR
+                </span>
+                <p className={`text-[10px] font-mono font-bold mt-0.5 ${isMonochrome ? 'text-slate-950' : 'text-slate-700'}`}>
+                  {refNumber}
                 </p>
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="inline-block px-2 py-0.5 bg-rose-100 text-rose-900 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-rose-300">
-                KAS KELUAR
-              </span>
-              <p className="text-[10px] font-mono font-bold text-slate-700 mt-0.5">
-                {refNumber}
-              </p>
-            </div>
-          </div>
 
-          {/* Judul Dokumen */}
-          <div className="text-center py-0.5">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-dashed border-slate-300 pb-1.5">
-              BUKTI PENGELUARAN KAS (BKK)
-            </h3>
-          </div>
+            {/* Judul Dokumen */}
+            <div className="text-center py-0.5">
+              <h3 className={`text-xs font-black uppercase tracking-wider border-b border-dashed pb-1.5 ${
+                isMonochrome ? 'text-slate-950 border-slate-950' : 'text-slate-900 border-slate-300'
+              }`}>
+                BUKTI PENGELUARAN KAS (BKK)
+              </h3>
+            </div>
 
-          {/* Rincian Transaksi */}
-          <div className="space-y-1.5 text-[11px] leading-tight">
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500 w-36 shrink-0">Dibayarkan Kepada:</span>
-              <span className="font-bold text-slate-900 text-right flex-1 truncate">
-                {recipientName}
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500 w-36 shrink-0">Pos Kategori Beban:</span>
-              <span className="font-semibold text-rose-900 text-right flex-1 truncate">
-                {expense.category || 'Beban Operasional'}
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500 w-36 shrink-0">Keperluan / Ket:</span>
-              <span className="font-bold text-slate-900 text-right flex-1">
-                {expense.description || expense.title || 'Pengeluaran Operasional'}
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500 w-36 shrink-0">Tanggal Bayar:</span>
-              <span className="font-medium text-slate-800 text-right flex-1">
-                {formatDateIndo(expense.date)}
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500 w-36 shrink-0">Metode Bayar:</span>
-              <span className="font-medium text-slate-800 text-right flex-1">
-                {expense.paymentMethod || 'Tunai'}
-              </span>
-            </div>
-            {expense.notes && (
+            {/* Rincian Transaksi */}
+            <div className="space-y-1.5 text-[11px] leading-tight">
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 w-36 shrink-0">Catatan:</span>
-                <span className="text-slate-600 italic text-right flex-1 text-[10px]">
-                  {expense.notes}
+                <span className="text-slate-500 w-36 shrink-0">Dibayarkan Kepada:</span>
+                <span className="font-bold text-slate-900 text-right flex-1 truncate">
+                  {recipientName}
                 </span>
               </div>
-            )}
-          </div>
-
-          {/* Kotak Nominal & Terbilang */}
-          <div className="p-3 bg-rose-50/80 border border-rose-300 rounded-xl space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-rose-950">
-                TOTAL KAS DIBAYARKAN:
-              </span>
-              <span className="text-xl font-black text-rose-700 font-mono">
-                {formatRupiah(expense.amount)}
-              </span>
-            </div>
-            <div className="pt-1 border-t border-rose-200">
-              <p className="text-[9px] text-slate-500 font-medium">Terbilang:</p>
-              <p className="text-[10px] font-bold italic text-slate-800 bg-white/90 px-2 py-1 rounded border border-rose-200 mt-0.5 leading-snug">
-                # {angkaTerbilang(expense.amount)} #
-              </p>
-            </div>
-          </div>
-
-          {/* Kolom Tanda Tangan 2 Pihak */}
-          <div className="grid grid-cols-2 gap-4 pt-2 text-[10px]">
-            {/* Kolom 1: Penerima Dana */}
-            <div className="text-center">
-              <p className="text-slate-600 font-semibold mb-9">
-                Diterima Oleh,
-              </p>
-              <div className="border-t border-slate-400 pt-0.5 font-bold text-slate-900 inline-block min-w-[120px]">
-                ( {recipientName !== '-' ? recipientName : '......................'} )
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Pos Kategori Beban:</span>
+                <span className={`font-semibold text-right flex-1 truncate ${isMonochrome ? 'text-slate-950' : 'text-rose-900'}`}>
+                  {expense.category || 'Beban Operasional'}
+                </span>
               </div>
-              <p className="text-[9px] text-slate-500 mt-0.5">
-                {recipientRole}
-              </p>
-            </div>
-
-            {/* Kolom 2: Yang Menyerahkan */}
-            <div className="text-center">
-              <p className="text-slate-600 font-semibold mb-9">
-                Dibayarkan Oleh,
-              </p>
-              <div className="border-t border-slate-400 pt-0.5 font-bold text-slate-900 inline-block min-w-[120px]">
-                ( {activeSignerName} )
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Keperluan / Ket:</span>
+                <span className="font-bold text-slate-900 text-right flex-1">
+                  {expense.description || expense.title || 'Pengeluaran Operasional'}
+                </span>
               </div>
-              <p className="text-[9px] text-slate-600 mt-0.5 font-bold">
-                {activeSignerTitle}
-              </p>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Tanggal Bayar:</span>
+                <span className="font-medium text-slate-800 text-right flex-1">
+                  {formatDateIndo(expense.date)}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500 w-36 shrink-0">Metode Bayar:</span>
+                <span className="font-medium text-slate-800 text-right flex-1">
+                  {expense.paymentMethod || 'Tunai'}
+                </span>
+              </div>
+              {expense.notes && (
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500 w-36 shrink-0">Catatan:</span>
+                  <span className="text-slate-600 italic text-right flex-1 text-[10px]">
+                    {expense.notes}
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Area Catatan Lampiran Nota Fisik */}
-          <div className="text-center text-[9px] text-slate-400 border-t border-slate-100 pt-1.5">
-            *Dokumen resmi pengeluaran kas {bimbelName}. Standar Kertas A6 (1/4 A4).
+            {/* Kotak Nominal & Terbilang */}
+            <div className={`p-3 rounded-xl space-y-1.5 ${
+              isMonochrome
+                ? 'bg-white border-2 border-slate-950 text-slate-950'
+                : 'bg-rose-50/80 border border-rose-300'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] uppercase tracking-wider font-extrabold ${
+                  isMonochrome ? 'text-slate-950' : 'text-rose-950'
+                }`}>
+                  TOTAL KAS DIBAYARKAN:
+                </span>
+                <span className={`text-xl font-black font-mono ${
+                  isMonochrome ? 'text-slate-950' : 'text-rose-700'
+                }`}>
+                  {formatRupiah(expense.amount)}
+                </span>
+              </div>
+              <div className={`pt-1 border-t ${isMonochrome ? 'border-slate-300' : 'border-rose-200'}`}>
+                <p className="text-[9px] text-slate-500 font-medium">Terbilang:</p>
+                <p className={`text-[10px] font-bold italic px-2 py-1 rounded border mt-0.5 leading-snug ${
+                  isMonochrome
+                    ? 'bg-slate-100 text-slate-950 border-slate-400'
+                    : 'bg-white/90 text-slate-800 border-rose-200'
+                }`}>
+                  # {angkaTerbilang(expense.amount)} #
+                </p>
+              </div>
+            </div>
+
+            {/* Kolom Tanda Tangan 2 Pihak */}
+            <div className="grid grid-cols-2 gap-4 pt-2 text-[10px]">
+              {/* Kolom 1: Penerima Dana */}
+              <div className="text-center">
+                <p className="text-slate-600 font-semibold mb-9">
+                  Diterima Oleh,
+                </p>
+                <div className={`border-t pt-0.5 font-bold text-slate-900 inline-block min-w-[120px] ${
+                  isMonochrome ? 'border-slate-950' : 'border-slate-400'
+                }`}>
+                  ( {recipientName !== '-' ? recipientName : '......................'} )
+                </div>
+                <p className="text-[9px] text-slate-500 mt-0.5">
+                  {recipientRole}
+                </p>
+              </div>
+
+              {/* Kolom 2: Yang Menyerahkan */}
+              <div className="text-center">
+                <p className="text-slate-600 font-semibold mb-9">
+                  Dibayarkan Oleh,
+                </p>
+                <div className={`border-t pt-0.5 font-bold text-slate-900 inline-block min-w-[120px] ${
+                  isMonochrome ? 'border-slate-950' : 'border-slate-400'
+                }`}>
+                  ( {activeSignerName} )
+                </div>
+                <p className={`text-[9px] mt-0.5 font-bold ${isMonochrome ? 'text-slate-800' : 'text-slate-600'}`}>
+                  {activeSignerTitle}
+                </p>
+              </div>
+            </div>
+
+            {/* Area Catatan Lampiran Nota Fisik */}
+            <div className="text-center text-[9px] text-slate-400 border-t border-slate-100 pt-1.5">
+              *Dokumen resmi pengeluaran kas {bimbelName}. Standar Kertas A6 (1/4 A4).
+            </div>
           </div>
         </div>
       </div>

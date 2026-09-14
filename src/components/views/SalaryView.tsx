@@ -249,8 +249,12 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     setIsExportingSlipPng(true);
     try {
       const monthName = getMonthNameIndo(selectedMonth);
-      const filename = `Slip_Honor_${activeSlipModalTutor.tutorName.replace(/\s+/g, '_')}_${monthName}_${selectedYear}`;
-      const success = await exportElementToPng(slipPrintRef.current, filename);
+      const modeSuffix = isMonochromeSlip ? '_BW' : '';
+      const filename = `Slip_Honor_${activeSlipModalTutor.tutorName.replace(/\s+/g, '_')}_${monthName}_${selectedYear}${modeSuffix}`;
+      const success = await exportElementToPng(slipPrintRef.current, filename, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
       if (success) {
         showToast('✅ Slip honorarium berhasil diunduh dalam format gambar (PNG)!');
       } else {
@@ -261,7 +265,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     }
   };
 
-  // Cetak Slip Gaji dengan Isolasi Dokumen (Standar A6: 105mm x 148mm - Hemat Kertas 1/4 A4)
+  // Cetak Slip Gaji dengan Isolasi Dokumen (Standar A5: 148mm x 210mm - Pas & Rapi)
   const handlePrintSlip = () => {
     if (!slipPrintRef.current || !activeSlipModalTutor) {
       window.print();
@@ -269,11 +273,12 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
     }
     const monthName = getMonthNameIndo(selectedMonth);
     const cleanTutorName = (activeSlipModalTutor.tutorName || 'Tutor').replace(/\s+/g, '_');
-    const docTitle = `Slip_Honor_${cleanTutorName}_${monthName}_${selectedYear}`;
+    const modeSuffix = isMonochromeSlip ? ' (B&W)' : '';
+    const docTitle = `Slip_Honor_${cleanTutorName}_${monthName}_${selectedYear}${modeSuffix}`;
     printElement(slipPrintRef.current, docTitle, {
-      pageSize: 'A6 portrait',
-      margin: '4mm',
-      maxWidth: '105mm',
+      pageSize: 'A5 portrait',
+      margin: '6mm',
+      maxWidth: '148mm',
     });
   };
 

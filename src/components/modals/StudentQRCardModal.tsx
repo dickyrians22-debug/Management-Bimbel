@@ -47,9 +47,15 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
   const handlePrintCard = () => {
     const cardEl = cardRef.current || document.getElementById('printable-student-qr-card');
     if (cardEl) {
+      const modeSuffix = isMonochrome ? ' (B&W)' : '';
       printElement(
         cardEl,
-        `Kartu_Siswa_${student.name.replace(/\s+/g, '_')}_${student.code}`
+        `Kartu_Siswa_${student.name.replace(/\s+/g, '_')}_${student.code}${modeSuffix}`,
+        {
+          pageSize: 'auto',
+          margin: '4mm',
+          maxWidth: '90mm',
+        }
       );
     } else {
       window.print();
@@ -62,9 +68,12 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
     if (!cardEl) return;
     setIsExporting(true);
     try {
-      const modeSuffix = isMonochrome ? 'BW' : 'Warna';
-      const filename = `ID_Card_${student.name.replace(/\s+/g, '_')}_${student.code}_${modeSuffix}`;
-      await exportElementToPng(cardEl, filename);
+      const modeSuffix = isMonochrome ? '_BW' : '';
+      const filename = `ID_Card_${student.name.replace(/\s+/g, '_')}_${student.code}${modeSuffix}`;
+      await exportElementToPng(cardEl, filename, {
+        pixelRatio: 3,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal mengunduh ID Card:', err);
     } finally {

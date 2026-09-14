@@ -55,7 +55,7 @@ import {
   formatWhatsAppMessage,
   sendWhatsAppDirect,
 } from '../../utils/whatsapp';
-import { exportToExcel, exportElementToPng } from '../../utils/exportUtils';
+import { exportToExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
 
 interface StudentBillingViewProps {
   students: Student[];
@@ -497,12 +497,25 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
 
   const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
 
+  const handlePrint = () => {
+    const monthName = getMonthNameIndo(selectedMonth);
+    const docTitle = `Rekap_Tagihan_Siswa_${monthName}_${selectedYear}`;
+    printElement('printable-billing-table', docTitle, {
+      pageSize: 'A4 landscape',
+      margin: '6mm',
+      maxWidth: '100%',
+    });
+  };
+
   const handleExportPng = async () => {
     setIsExportingPng(true);
     try {
       const monthName = getMonthNameIndo(selectedMonth);
       const fileName = `Rekap_Tagihan_Siswa_${monthName}_${selectedYear}`;
-      await exportElementToPng('printable-billing-table', fileName);
+      await exportElementToPng('printable-billing-table', fileName, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal unduh gambar tagihan siswa:', err);
     } finally {
@@ -604,6 +617,16 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
           >
             <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
             <span>{isExportingPng ? 'Menyimpan...' : 'PNG'}</span>
+          </button>
+
+          <button
+            id="btn-print-billing-pdf"
+            onClick={handlePrint}
+            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            title="Cetak atau simpan rekap tagihan ke format PDF (A4 Landscape)"
+          >
+            <Printer className="w-4 h-4 text-white shrink-0" />
+            <span>Cetak / PDF</span>
           </button>
         </div>
       </div>
@@ -825,7 +848,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
       {/* Main Billing Table */}
       <div id="printable-billing-table" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         {/* Table Top Bar */}
-        <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print no-export">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-700">
               Total {totalItems} Data Tagihan Siswa
@@ -865,7 +888,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                 <th className="py-3.5 px-4 text-right">Sudah Dibayar</th>
                 <th className="py-3.5 px-4 text-right">Sisa Kurang Bayar</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-center w-48">Aksi Pembayaran & WA</th>
+                <th className="py-3.5 px-4 text-center w-48 no-print no-export">Aksi Pembayaran & WA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -999,7 +1022,7 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
                       </td>
 
                       {/* 9. Aksi Pembayaran & WhatsApp */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center no-print no-export">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* WhatsApp Notification Button (Owner/Tutor only) */}
                           {!isSiswaRole && (

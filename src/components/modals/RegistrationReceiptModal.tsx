@@ -117,8 +117,12 @@ export const RegistrationReceiptModal: React.FC<RegistrationReceiptModalProps> =
     try {
       const studentNameClean = prospectiveStudent.studentName.replace(/\s+/g, '_');
       const regNumClean = prospectiveStudent.registrationNumber.replace(/\s+/g, '_');
-      const fileName = `Bukti_Pendaftaran_${regNumClean}_${studentNameClean}`;
-      await exportElementToPng(receiptContainerRef.current, fileName);
+      const modeSuffix = isMonochrome ? '_BW' : '';
+      const fileName = `Bukti_Pendaftaran_${regNumClean}_${studentNameClean}${modeSuffix}`;
+      await exportElementToPng(receiptContainerRef.current, fileName, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
     } finally {
       setIsExportingImage(false);
     }

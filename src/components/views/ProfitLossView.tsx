@@ -612,16 +612,25 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
   // ==========================================
   const handlePrint = () => {
     const modeLabel = activeMode === 'monthly' ? `Bulan_${targetMonthName}` : 'Tahunan_12_Bulan';
-    const docTitle = `Laporan_P&L_${bimbelName.replace(/\s+/g, '_')}_${modeLabel}_${selectedYear}`;
-    printElement('printable-pl-statement', docTitle);
+    const modeSuffix = isMonochrome ? ' (B&W)' : '';
+    const docTitle = `Laporan_P&L_${bimbelName.replace(/\s+/g, '_')}_${modeLabel}_${selectedYear}${modeSuffix}`;
+    printElement('printable-pl-statement', docTitle, {
+      pageSize: activeMode === 'monthly' ? 'A4 portrait' : 'A4 landscape',
+      margin: '6mm',
+      maxWidth: '100%',
+    });
   };
 
   const handleExportPng = async () => {
     setIsExportingPng(true);
     try {
       const modeLabel = activeMode === 'monthly' ? `Bulan_${targetMonthName}` : 'Tahunan_12_Bulan';
-      const fileName = `Laporan_P&L_${bimbelName.replace(/\s+/g, '_')}_${modeLabel}_${selectedYear}`;
-      await exportElementToPng('printable-pl-statement', fileName);
+      const modeSuffix = isMonochrome ? '_BW' : '';
+      const fileName = `Laporan_P&L_${bimbelName.replace(/\s+/g, '_')}_${modeLabel}_${selectedYear}${modeSuffix}`;
+      await exportElementToPng('printable-pl-statement', fileName, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal unduh gambar laba rugi:', err);
     } finally {

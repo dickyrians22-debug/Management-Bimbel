@@ -427,7 +427,10 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
     setExportingStudentId(student.id);
     try {
       const fileName = `Kartu_KTP_${student.name.replace(/\s+/g, '_')}_${student.code}`;
-      await exportElementToPng(`card-ktp-${student.id}`, fileName);
+      await exportElementToPng(`card-ktp-${student.id}`, fileName, {
+        pixelRatio: 3,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal mengunduh kartu siswa:', err);
     } finally {
@@ -499,7 +502,10 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
         });
       } else if (activeMode === 'mode-b') {
         const fileName = `Rekap_Presensi_Matriks_${monthName}_${selectedYear}_${bimbelName.replace(/\s+/g, '_')}`;
-        await exportElementToPng('printable-group-sheet', fileName);
+        await exportElementToPng('printable-group-sheet', fileName, {
+          pixelRatio: 2.5,
+          backgroundColor: '#ffffff',
+        });
       } else {
         // Mode C: Kartu ID & QR Pelajar KTP
         // Unduh kartu siswa individual (bukan digabung semua)

@@ -40,7 +40,7 @@ import {
   normalizeExpenseRefNumber,
   normalizeIncomeReceiptNumber,
 } from '../../utils/storage';
-import { exportToExcel, exportElementToPng } from '../../utils/exportUtils';
+import { exportToExcel, exportElementToPng, printElement } from '../../utils/exportUtils';
 import { ExpenseReceiptModal } from '../modals/ExpenseReceiptModal';
 
 interface CashBookViewProps {
@@ -320,11 +320,23 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
 
   const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
 
+  const handlePrint = () => {
+    const docTitle = `Buku_Kas_${(settings.bimbelName || 'Bimbel').replace(/\s+/g, '_')}_${filterMonth !== 'All' ? `Bulan_${filterMonth}_` : ''}${filterYear}`;
+    printElement('printable-cashbook-table', docTitle, {
+      pageSize: 'A4 landscape',
+      margin: '6mm',
+      maxWidth: '100%',
+    });
+  };
+
   const handleExportPng = async () => {
     setIsExportingPng(true);
     try {
-      const fileName = `Buku_Kas_Bimbel_Sigma_${filterMonth !== 'All' ? `Bulan_${filterMonth}_` : ''}${filterYear}`;
-      await exportElementToPng('printable-cashbook-table', fileName);
+      const fileName = `Buku_Kas_${(settings.bimbelName || 'Bimbel').replace(/\s+/g, '_')}_${filterMonth !== 'All' ? `Bulan_${filterMonth}_` : ''}${filterYear}`;
+      await exportElementToPng('printable-cashbook-table', fileName, {
+        pixelRatio: 2.5,
+        backgroundColor: '#ffffff',
+      });
     } catch (err) {
       console.error('Gagal unduh gambar buku kas:', err);
     } finally {
@@ -422,6 +434,16 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
             >
               <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
               <span>{isExportingPng ? 'Menyimpan...' : 'Gambar PNG'}</span>
+            </button>
+
+            <button
+              id="btn-print-cashbook-pdf"
+              onClick={handlePrint}
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Cetak atau simpan buku kas ke format PDF (A4 Landscape)"
+            >
+              <Printer className="w-4 h-4 text-white shrink-0" />
+              <span>Cetak / PDF</span>
             </button>
           </div>
         </div>
@@ -643,7 +665,7 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
                 <th className="py-3.5 px-4 text-right">Kas Masuk (Debit)</th>
                 <th className="py-3.5 px-4 text-right">Kas Keluar (Kredit)</th>
                 <th className="py-3.5 px-4 text-right">Saldo Berjalan</th>
-                <th className="py-3.5 px-4 text-center w-28">Aksi</th>
+                <th className="py-3.5 px-4 text-center w-28 no-print no-export">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -740,7 +762,7 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
                       </td>
 
                       {/* 8. Actions */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center no-print no-export">
                         <div className="flex items-center justify-center gap-1">
                           {isIncome && tx.rawIncome && (
                             <button

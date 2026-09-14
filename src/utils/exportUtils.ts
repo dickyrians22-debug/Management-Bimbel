@@ -95,11 +95,18 @@ export const exportMultiSheetExcel = (
 /**
  * High-Resolution PNG Image Exporter
  * Renders any DOM element (e.g. Receipt, Salary Slip, Student Card) into a crisp PNG file.
+ * Includes precise dimensional bounding, margin normalization, and anti-clipping safeguards.
  */
 export const exportElementToPng = async (
   target: HTMLElement | string,
   fileName: string,
-  options?: { width?: number; height?: number; pixelRatio?: number }
+  options?: {
+    width?: number;
+    height?: number;
+    pixelRatio?: number;
+    backgroundColor?: string;
+    style?: Partial<CSSStyleDeclaration>;
+  }
 ): Promise<boolean> => {
   try {
     const node = typeof target === 'string' ? document.getElementById(target) : target;
@@ -108,16 +115,35 @@ export const exportElementToPng = async (
       return false;
     }
 
+    // Precise dimension calculation with safety buffer for borders and subpixel rounding
+    const rect = node.getBoundingClientRect();
+    const computedWidth = options?.width || Math.ceil(Math.max(node.scrollWidth, node.offsetWidth, rect.width));
+    const computedHeight = options?.height || Math.ceil(Math.max(node.scrollHeight, node.offsetHeight, rect.height));
+
     // Render to PNG with 2.5x pixel ratio for sharp print-grade quality
     // skipFonts: true prevents CORS SecurityError when reading document.styleSheets for Google Fonts
     const dataUrl = await toPng(node, {
       quality: 0.98,
       pixelRatio: options?.pixelRatio || 2.5,
-      width: options?.width,
-      height: options?.height,
-      backgroundColor: '#ffffff',
+      width: computedWidth,
+      height: computedHeight,
+      backgroundColor: options?.backgroundColor || '#ffffff',
       skipFonts: true,
       cacheBust: false,
+      style: {
+        margin: '0',
+        transform: 'none',
+        left: '0',
+        top: '0',
+        right: 'auto',
+        bottom: 'auto',
+        maxWidth: 'none',
+        maxHeight: 'none',
+        boxSizing: 'border-box',
+        width: `${computedWidth}px`,
+        height: `${computedHeight}px`,
+        ...options?.style,
+      },
       filter: (childNode) => {
         // Exclude elements with .no-print or .no-export class
         if (childNode instanceof HTMLElement) {
@@ -155,7 +181,7 @@ export const printElement = (
   target: HTMLElement | string,
   documentTitle: string = 'Kwitansi Resmi',
   options?: {
-    pageSize?: 'A6 portrait' | 'A4 portrait' | 'A4 landscape' | 'auto';
+    pageSize?: 'A6 portrait' | 'A5 portrait' | 'A4 portrait' | 'A4 landscape' | 'auto';
     margin?: string;
     maxWidth?: string;
   }
@@ -169,7 +195,17 @@ export const printElement = (
 
     const pageSize = options?.pageSize || 'auto';
     const pageMargin = options?.margin || '4mm';
-    const maxWidth = options?.maxWidth || (pageSize.includes('A6') ? '105mm' : '680px');
+    const maxWidth =
+      options?.maxWidth ||
+      (pageSize === 'A6 portrait'
+        ? '105mm'
+        : pageSize === 'A5 portrait'
+        ? '148mm'
+        : pageSize === 'A4 portrait'
+        ? '100%'
+        : pageSize === 'A4 landscape'
+        ? '100%'
+        : '100%');
 
     // Remove any previous print iframes if present
     const oldIframe = document.getElementById('bimbel-print-isolated-iframe');
