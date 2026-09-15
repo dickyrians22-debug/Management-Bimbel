@@ -133,27 +133,34 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
+      <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 shadow-xs">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">Database Siswa Bimbel</h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                Kelola data lengkap peserta didik, tingkat kelas, tarif per sesi, dan kontak orang tua
-              </p>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                {students.length} Total Siswa
+              </span>
             </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Kelola data lengkap peserta didik, tingkat kelas, tarif per sesi, dan kontak orang tua
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+      {/* Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Data & Ekspor */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {canEdit && onResetStudents && (
             <button
               onClick={onResetStudents}
               title="Perbarui / Muat ulang 25 data siswa lengkap sesuai daftar bimbel"
-              className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>Sinkronkan 25 Siswa</span>
@@ -163,24 +170,25 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
           <button
             id="btn-export-students-excel"
             onClick={handleExportExcel}
-            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             title="Unduh seluruh data siswa ke format Excel (.xlsx)"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>Excel (.xlsx)</span>
           </button>
-
-          {canEdit && (
-            <button
-              id="add-student-btn"
-              onClick={() => onOpenStudentModal()}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/25 flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4 shrink-0" />
-              <span>+ Tambah Siswa</span>
-            </button>
-          )}
         </div>
+
+        {/* Kelompok Aksi Utama */}
+        {canEdit && (
+          <button
+            id="add-student-btn"
+            onClick={() => onOpenStudentModal()}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <UserPlus className="w-3.5 h-3.5 shrink-0" />
+            <span>+ Tambah Siswa</span>
+          </button>
+        )}
       </div>
 
       {/* Filter & Search Bar */}

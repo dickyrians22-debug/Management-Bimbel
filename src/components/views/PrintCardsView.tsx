@@ -678,130 +678,162 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
         }
       `}</style>
 
-      {/* Control Panel (Hidden When Printing) */}
-      <div className="no-print bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-        {/* Top Title & Print Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20">
-              <Printer className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 font-heading">
-                Rekap Presensi & Format Cetak Laporan
-              </h2>
-              <p className="text-xs text-slate-500">
-                {userRole === 'siswa'
-                  ? 'Rekapitulasi resmi kehadiran belajar, catatan perkembangan materi, dan kartu kontrol presensi pribadi Anda.'
-                  : 'Pilih mode cetak presensi: Laporan lengkap perorangan siswa atau lembar presensi kelas kelompok.'}
-              </p>
-            </div>
+      {/* Header Banner */}
+      <div className="no-print bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-inner shrink-0">
+            <Printer className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">
+                Rekap Presensi &amp; Format Cetak Dokumen
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                {activeMode === 'mode-a' ? 'Laporan Siswa' : activeMode === 'mode-b' ? 'Matriks Presensi' : 'Kartu Pelajar'}
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              {userRole === 'siswa'
+                ? 'Rekapitulasi resmi kehadiran belajar, catatan perkembangan materi, dan kartu kontrol presensi pribadi Anda.'
+                : 'Pilih mode cetak presensi: Laporan lengkap perorangan siswa atau lembar presensi kelas kelompok.'}
+            </p>
+          </div>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {activeMode === 'mode-a' && selectedStudent && userRole !== 'siswa' && (
+      {/* Compact Action Toolbar */}
+      <div className="no-print bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Left: Mode Tabs & B&W Switcher */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {/* MODE TABS SELECTION */}
+          {userRole !== 'siswa' && (
+            <div className="inline-flex p-0.5 bg-slate-100 border border-slate-200 rounded-lg text-xs">
               <button
                 type="button"
-                onClick={handleSendStudentReportWhatsApp}
-                className="px-4 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition cursor-pointer text-xs active:scale-95"
-                title="Kirim pengantar ringkasan laporan via WhatsApp ke nomor orang tua siswa"
+                onClick={() => setActiveMode('mode-a')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeMode === 'mode-a'
+                    ? 'bg-white text-indigo-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>Kirim WA ke Wali Murid</span>
+                <User className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Laporan Siswa</span>
               </button>
-            )}
-
-            {activeMode === 'mode-b' && (
               <button
                 type="button"
-                id="btn-export-matrix-excel"
-                onClick={handleExportMatrixExcel}
-                className="px-4 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition cursor-pointer text-xs active:scale-95"
-                title="Download rekap presensi matriks bulanan format Excel (.xlsx)"
+                onClick={() => setActiveMode('mode-b')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeMode === 'mode-b'
+                    ? 'bg-white text-indigo-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
-                <span>Download Excel (.xlsx)</span>
+                <Grid className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Rekap Presensi</span>
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => setActiveMode('mode-c')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeMode === 'mode-c'
+                    ? 'bg-white text-indigo-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span>Kartu ID &amp; QR</span>
+              </button>
+            </div>
+          )}
 
+          {/* PRINT THEME SWITCHER: B&W vs Color */}
+          <div className="inline-flex p-0.5 bg-slate-100 border border-slate-200 rounded-lg text-xs">
             <button
               type="button"
-              id="btn-export-card-png"
-              onClick={handleExportCardPng}
-              disabled={isExportingPng}
-              className="px-4 py-2.5 sm:py-3 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300/80 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
-              title="Unduh tampilan laporan atau kartu presensi sebagai gambar PNG"
-            >
-              <ImageIcon className="w-4 h-4 text-amber-700" />
-              <span>{isExportingPng ? 'Menyimpan...' : 'Unduh Gambar (PNG)'}</span>
-            </button>
-
-            <button
-              onClick={handlePrint}
-              className={`px-5 py-2.5 sm:py-3 font-black rounded-2xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer text-xs sm:text-sm active:scale-95 ${
+              onClick={() => setIsMonochrome(true)}
+              className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 transition cursor-pointer text-xs ${
                 isMonochrome
-                  ? 'bg-slate-900 hover:bg-black text-white shadow-slate-900/20'
-                  : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-indigo-600/30'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Format monokrom hitam putih bersih, hemat tinta printer hingga 90%"
             >
-              <Printer className="w-4 h-4" />
-              <span>
-                {activeMode === 'mode-b'
-                  ? 'Cetak / Simpan PDF (A4 Landscape)'
-                  : modeALayout === 'pocket-card-sheet-4'
-                  ? 'Cetak / Simpan PDF (Massal 4 Siswa)'
-                  : modeALayout === 'pocket-card'
-                  ? 'Cetak / Simpan PDF (A6)'
-                  : 'Cetak / Simpan PDF (A4)'}
-              </span>
+              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+              <span>B&amp;W</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMonochrome(false)}
+              className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 transition cursor-pointer text-xs ${
+                !isMonochrome
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Format berwarna"
+            >
+              <Palette className="w-3 h-3" />
+              <span>Warna</span>
             </button>
           </div>
         </div>
 
-        {/* PRINT THEME SWITCHER (Ink-Saver B&W vs Color) & GUIDANCE */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-slate-800">Format Warna Cetak:</span>
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
-              <button
-                type="button"
-                onClick={() => setIsMonochrome(true)}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                  isMonochrome
-                    ? 'bg-white text-slate-950 shadow-xs border border-slate-300'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Format monokrom hitam putih bersih, hemat tinta printer hingga 90%"
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-500 inline-block" />
-                <span>Hitam Putih (Hemat Tinta)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsMonochrome(false)}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                  !isMonochrome
-                    ? 'bg-white text-indigo-900 shadow-xs border border-indigo-200'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Format berwarna"
-              >
-                <Palette className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Berwarna</span>
-              </button>
-            </div>
-          </div>
-          <p className="text-[11px] text-slate-500">
-            {isMonochrome
-              ? '✓ Mode Hemat Tinta Aktif: Tanpa blok warna/gradien pekat, hemat toner & kertas rapi.'
-              : 'Mode Berwarna: Menggunakan aksen warna visual penuh.'}
-          </p>
-        </div>
+        {/* Right: Contextual Action Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {activeMode === 'mode-a' && selectedStudent && userRole !== 'siswa' && (
+            <button
+              type="button"
+              onClick={handleSendStudentReportWhatsApp}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition cursor-pointer text-xs"
+              title="Kirim pengantar ringkasan laporan via WhatsApp ke nomor orang tua siswa"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>Kirim WA</span>
+            </button>
+          )}
 
+          {activeMode === 'mode-b' && (
+            <button
+              type="button"
+              id="btn-export-matrix-excel"
+              onClick={handleExportMatrixExcel}
+              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition cursor-pointer text-xs"
+              title="Download rekap presensi matriks bulanan format Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Excel (.xlsx)</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            id="btn-export-card-png"
+            onClick={handleExportCardPng}
+            disabled={isExportingPng}
+            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+            title="Unduh tampilan laporan atau kartu presensi sebagai gambar PNG"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-amber-700" />
+            <span>{isExportingPng ? 'Menyimpan...' : 'PNG'}</span>
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition cursor-pointer text-xs"
+          >
+            <Printer className="w-3.5 h-3.5 text-white" />
+            <span>Cetak / PDF</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Control Panel (Hidden When Printing) */}
+      <div className="no-print bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-4">
         {/* PRINT LAYOUT GUIDANCE BANNER */}
-        <div className="flex items-center gap-3 p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs text-indigo-950">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Printer className="w-4 h-4" />
+        <div className="flex items-center gap-3 p-2.5 sm:p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-950">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Printer className="w-3.5 h-3.5" />
           </div>
           <div className="text-[11px] leading-relaxed">
             <span className="font-bold text-indigo-900">Petunjuk Cetak / Simpan PDF Presisi:</span>{' '}
@@ -821,50 +853,14 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
           </div>
         </div>
 
-        {/* MODE TABS SELECTION (Only visible for admin/owner/tutor - hidden for student) */}
-        {userRole !== 'siswa' ? (
-          <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl max-w-2xl">
-            <button
-              onClick={() => setActiveMode('mode-a')}
-              className={`flex-1 py-2.5 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                activeMode === 'mode-a'
-                  ? 'bg-white text-indigo-900 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <User className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>Laporan Siswa</span>
-            </button>
-            <button
-              onClick={() => setActiveMode('mode-b')}
-              className={`flex-1 py-2.5 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                activeMode === 'mode-b'
-                  ? 'bg-white text-indigo-900 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Grid className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Rekap Presensi</span>
-            </button>
-            <button
-              onClick={() => setActiveMode('mode-c')}
-              className={`flex-1 py-2.5 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                activeMode === 'mode-c'
-                  ? 'bg-white text-indigo-900 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <QrCode className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Kartu ID & QR Siswa</span>
-            </button>
-          </div>
-        ) : (
+        {/* Student Welcome Note for Siswa Role */}
+        {userRole === 'siswa' && (
           <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-2xl flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
               <GraduationCap className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-indigo-950">Kartu Kontrol & Rekap Presensi Pribadi</p>
+              <p className="text-xs font-bold text-indigo-950">Kartu Kontrol &amp; Rekap Presensi Pribadi</p>
               <p className="text-[11px] text-indigo-700">
                 Memuat catatan kehadiran resmi, materi yang dipelajari, dan rincian SPP Anda.
               </p>

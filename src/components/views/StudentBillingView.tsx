@@ -553,58 +553,64 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300 pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-inner shrink-0">
-              <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div>
+      <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-inner shrink-0">
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">
                 Tagihan Siswa (Skema Belajar Dulu Baru Bayar)
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                Otomatis dihitung dari jumlah kehadiran hadir riil siswa × tarif per sesi periode {getMonthNameIndo(selectedMonth)} {selectedYear}
-              </p>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                {getMonthNameIndo(selectedMonth)} {selectedYear}
+              </span>
             </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Otomatis dihitung dari jumlah kehadiran hadir riil siswa × tarif per sesi periode {getMonthNameIndo(selectedMonth)} {selectedYear}
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Action Controls & Period Pickers */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          {/* Month Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-slate-200">
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 ml-1.5 shrink-0" />
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="bg-transparent text-xs font-bold text-slate-800 pr-2 py-1 outline-hidden cursor-pointer"
-            >
-              {MONTH_NAMES_ID.map((m, idx) => (
-                <option key={idx} value={idx + 1}>
-                  {m}
-                </option>
-              ))}
-            </select>
+      {/* Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Month & Year Selector Group */}
+        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+          <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="bg-transparent text-xs font-bold text-slate-800 pr-1 py-0.5 outline-hidden cursor-pointer"
+          >
+            {MONTH_NAMES_ID.map((m, idx) => (
+              <option key={idx} value={idx + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
 
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-transparent text-xs font-bold text-slate-800 pr-2 py-1 outline-hidden cursor-pointer border-l border-slate-200 pl-2"
-            >
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-              <option value={2027}>2027</option>
-            </select>
-          </div>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="bg-transparent text-xs font-bold text-slate-800 pr-1 py-0.5 outline-hidden cursor-pointer border-l border-slate-200 pl-1.5"
+          >
+            <option value={2025}>2025</option>
+            <option value={2026}>2026</option>
+            <option value={2027}>2027</option>
+          </select>
+        </div>
 
+        {/* Action Buttons Grouped */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             id="btn-export-billing-excel"
             onClick={handleExportExcel}
-            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             title="Unduh rekap tagihan siswa ke format Excel (.xlsx)"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>Excel (.xlsx)</span>
           </button>
 
@@ -612,20 +618,20 @@ export const StudentBillingView: React.FC<StudentBillingViewProps> = ({
             id="btn-export-billing-png"
             onClick={handleExportPng}
             disabled={isExportingPng}
-            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
             title="Unduh format tabel rekap tagihan siswa sebagai gambar PNG"
           >
-            <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
+            <ImageIcon className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             <span>{isExportingPng ? 'Menyimpan...' : 'PNG'}</span>
           </button>
 
           <button
             id="btn-print-billing-pdf"
             onClick={handlePrint}
-            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             title="Cetak atau simpan rekap tagihan ke format PDF (A4 Landscape)"
           >
-            <Printer className="w-4 h-4 text-white shrink-0" />
+            <Printer className="w-3.5 h-3.5 text-white shrink-0" />
             <span>Cetak / PDF</span>
           </button>
         </div>

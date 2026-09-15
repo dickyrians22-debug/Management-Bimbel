@@ -1274,142 +1274,148 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-900/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-indigo-900/50">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="bg-amber-400/20 text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-400/30 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
               Khusus Hak Akses Owner (Super Admin)
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black font-heading tracking-tight">
-            Pusat Pengaturan Sistem & Kelola Akun
+            Pusat Pengaturan Sistem &amp; Kelola Akun
           </h2>
           <p className="text-xs sm:text-sm text-indigo-200 mt-1 max-w-2xl">
-            Kelola akun pengguna (Tutor, Siswa, Admin), kustomisasi kategori pengeluaran & kas masuk, profil lembaga, serta pencadangan database.
+            Kelola akun pengguna (Tutor, Siswa, Admin), kustomisasi kategori pengeluaran &amp; kas masuk, profil lembaga, serta pencadangan database.
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {onSyncTutorNames && (
-            <button
-              onClick={onSyncTutorNames}
-              className="px-3.5 py-2.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white border border-white/20 font-bold rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Sinkronkan nama tutor dari database akun ke seluruh riwayat presensi & data siswa"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-teal-300" />
-              <span>Sinkronkan Nama Tutor</span>
-            </button>
-          )}
-          <button
-            onClick={() => onOpenUserModal()}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold rounded-2xl text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Akun Baru</span>
-          </button>
         </div>
       </div>
 
-      {/* Settings Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200">
-        <button
-          onClick={() => setActiveSubTab('accounts')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'accounts'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Kelola Akun Pengguna ({users.length})</span>
-        </button>
+      {/* Settings Navigation & Compact Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Navigation Tabs (Compact Pills) */}
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full py-0.5">
+          <button
+            onClick={() => setActiveSubTab('accounts')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'accounts'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Akun ({users.length})</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('salary-rates')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'salary-rates'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Calculator className="w-4 h-4 text-amber-500" />
-          <span>Tarif & Rumus Gaji Tutor</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('salary-rates')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'salary-rates'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Tarif Gaji</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('financial-categories')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'financial-categories'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Wallet className="w-4 h-4 text-emerald-500" />
-          <span>Kategori Keuangan & Pembayaran</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('financial-categories')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'financial-categories'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Kategori Kas</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('profile')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'profile'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Building className="w-4 h-4 text-amber-500" />
-          <span>Profil Lembaga & Kwitansi</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('profile')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'profile'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Building className="w-3.5 h-3.5" />
+            <span>Profil Lembaga</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('ppdb-terms')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'ppdb-terms'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <FileText className="w-4 h-4 text-indigo-500" />
-          <span>Formulir &amp; Bukti PPDB</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('ppdb-terms')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'ppdb-terms'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>PPDB</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('whatsapp-templates')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'whatsapp-templates'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <MessageCircle className="w-4 h-4 text-emerald-500" />
-          <span>📱 Template Pesan WhatsApp</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('whatsapp-templates')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'whatsapp-templates'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>WhatsApp</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('appearance')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'appearance'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Palette className="w-4 h-4 text-purple-500" />
-          <span>🎨 Tampilan & Desain Teks</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('appearance')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'appearance'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Tampilan</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('backup')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'backup'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Download className="w-4 h-4 text-indigo-500" />
-          <span>Backup & Reset Data</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('backup')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'backup'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Backup &amp; Reset</span>
+          </button>
+        </div>
+
+        {/* Right: Context Action Buttons for Accounts Tab */}
+        {activeSubTab === 'accounts' && (
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {onSyncTutorNames && (
+              <button
+                onClick={onSyncTutorNames}
+                className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-200 font-semibold rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Sinkronkan nama tutor dari database akun ke seluruh riwayat presensi & data siswa"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
+                <span>Sinkron Tutor</span>
+              </button>
+            )}
+            <button
+              onClick={() => onOpenUserModal()}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold rounded-lg text-xs shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Tambah Akun</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========================================================= */}

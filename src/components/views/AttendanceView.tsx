@@ -153,70 +153,71 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-              <CalendarCheck2 className="w-5 h-5" />
+      <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
+            <CalendarCheck2 className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">
+                Presensi &amp; Log Materi Pembelajaran
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold bg-emerald-100 text-emerald-800">
+                {todayCount} Hadir Hari Ini
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">
-                  Presensi & Log Materi Pembelajaran
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold bg-emerald-100 text-emerald-800">
-                  {todayCount} Hadir Hari Ini
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                Log kehadiran digital siswa, rekaman jam masuk, materi harian, dan evaluasi hasil belajar
-              </p>
-            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Log kehadiran digital siswa, rekaman jam masuk, materi harian, dan evaluasi hasil belajar
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-          <button
-            id="btn-export-attendance-excel"
-            onClick={handleExportExcel}
-            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            title="Unduh rekap presensi ke format Excel (.xlsx)"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Excel (.xlsx)</span>
-          </button>
+      {/* Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Ekspor Laporan */}
+        <button
+          id="btn-export-attendance-excel"
+          onClick={handleExportExcel}
+          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+          title="Unduh rekap presensi ke format Excel (.xlsx)"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>Excel (.xlsx)</span>
+        </button>
 
-          {canEdit && (
-            <>
-              {onOpenQRScanner && (
-                <button
-                  id="attendance-scan-qr-btn"
-                  onClick={onOpenQRScanner}
-                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition cursor-pointer"
-                  title="Pindai QR Code Siswa untuk Absensi Cepat"
-                >
-                  <QrCode className="w-4 h-4 shrink-0" />
-                  <span>Scan QR Absen</span>
-                </button>
-              )}
+        {/* Kelompok Aksi Catat Absen */}
+        {canEdit && (
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {onOpenQRScanner && (
               <button
-                onClick={onOpenBatchAttendanceModal}
-                className="px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                id="attendance-scan-qr-btn"
+                onClick={onOpenQRScanner}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+                title="Pindai QR Code Siswa untuk Absensi Cepat"
               >
-                <CheckSquare className="w-4 h-4 text-teal-700 shrink-0" />
-                <span>+ Absen Batch</span>
+                <QrCode className="w-3.5 h-3.5 shrink-0" />
+                <span>Scan QR Absen</span>
               </button>
-              <button
-                id="add-attendance-btn"
-                onClick={() => onOpenAttendanceModal()}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/25 flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4 shrink-0" />
-                <span>+ Catat Absensi</span>
-              </button>
-            </>
-          )}
-        </div>
+            )}
+            <button
+              onClick={onOpenBatchAttendanceModal}
+              className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <CheckSquare className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+              <span>+ Absen Batch</span>
+            </button>
+            <button
+              id="add-attendance-btn"
+              onClick={() => onOpenAttendanceModal()}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>+ Catat Absensi</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Alert if duplicates detected */}

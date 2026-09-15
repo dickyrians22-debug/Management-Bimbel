@@ -93,75 +93,76 @@ export const DashboardSiswa: React.FC<DashboardSiswaProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-      {/* Student Top Header & Action */}
+      {/* Top Header */}
       <div className="bg-white rounded-2xl p-4 sm:p-7 border border-slate-200/90 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-800 text-[11px] sm:text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                {studentBadge}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                {formatDateIndo(today)}
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              {studentTitle}
-            </h2>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
-              {studentMessage}
-            </p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-800 text-[11px] sm:text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              {studentBadge}
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              {formatDateIndo(today)}
+            </span>
           </div>
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            {studentTitle}
+          </h2>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
+            {studentMessage}
+          </p>
+        </div>
+      </div>
 
-          {/* Big Self-Attendance & Password Buttons */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 lg:pt-0">
-            {myTodayRecord ? (
-              <div className="px-3.5 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-emerald-900">
-                    Kamu Sudah Hadir Hari Ini
-                  </p>
-                  <p className="text-[11px] text-emerald-700">
-                    {myTodayRecord.time} WIB • {myTodayRecord.topic}
-                  </p>
-                </div>
+      {/* Action Toolbar */}
+      <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Status Hadir / Tombol Presensi Mandiri */}
+        <div>
+          {myTodayRecord ? (
+            <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-emerald-900 leading-tight">
+                  Sudah Hadir Hari Ini ({myTodayRecord.time} WIB)
+                </p>
               </div>
-            ) : (
-              <button
-                id="self-attendance-trigger-btn"
-                onClick={onOpenSelfAttendanceModal}
-                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-2xs flex items-center justify-center gap-2 transition cursor-pointer text-xs"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                Absen Masuk Mandiri
-              </button>
-            )}
+            </div>
+          ) : (
+            <button
+              id="self-attendance-trigger-btn"
+              onClick={onOpenSelfAttendanceModal}
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-xs flex items-center justify-center gap-2 transition cursor-pointer text-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Absen Masuk Mandiri</span>
+            </button>
+          )}
+        </div>
 
-            {onOpenQRCard && (
-              <button
-                id="student-view-qr-card-btn"
-                onClick={() => onOpenQRCard(safeStudent)}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-2xs flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
-                title="Tampilkan & Unduh ID Card Pelajar"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>ID Card Pelajar</span>
-              </button>
-            )}
+        {/* Kartu Pelajar & Password */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {onOpenQRCard && (
+            <button
+              id="student-view-qr-card-btn"
+              onClick={() => onOpenQRCard(safeStudent)}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
+              title="Tampilkan & Unduh ID Card Pelajar"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>ID Card Pelajar</span>
+            </button>
+          )}
 
-            {onOpenChangePasswordModal && (
-              <button
-                onClick={onOpenChangePasswordModal}
-                className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-                title="Ganti Kata Sandi Akun Siswa"
-              >
-                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
-                Password
-              </button>
-            )}
-          </div>
+          {onOpenChangePasswordModal && (
+            <button
+              onClick={onOpenChangePasswordModal}
+              className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
+              title="Ganti Kata Sandi Akun Siswa"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+              <span>Password</span>
+            </button>
+          )}
         </div>
       </div>
 

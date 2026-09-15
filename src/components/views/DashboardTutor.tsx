@@ -77,64 +77,70 @@ export const DashboardTutor: React.FC<DashboardTutorProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-      {/* Top Header & Actions */}
+      {/* Top Header */}
       <div className="bg-white rounded-2xl p-4 sm:p-7 border border-slate-200/90 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal-50 border border-teal-100 text-teal-700 text-[11px] sm:text-xs font-semibold">
-                <GraduationCap className="w-3.5 h-3.5" />
-                {tutorBadge}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                {formatDateIndo(today)}
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              {tutorTitle}
-            </h2>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
-              {tutorMessage}
-            </p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal-50 border border-teal-100 text-teal-700 text-[11px] sm:text-xs font-semibold">
+              <GraduationCap className="w-3.5 h-3.5" />
+              {tutorBadge}
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              {formatDateIndo(today)}
+            </span>
           </div>
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            {tutorTitle}
+          </h2>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
+            {tutorMessage}
+          </p>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1 lg:pt-0">
-            {onOpenQRScanner && (
-              <button
-                id="tutor-scan-qr-btn"
-                onClick={onOpenQRScanner}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm shadow-emerald-600/20"
-                title="Pindai QR Code Siswa untuk Absensi Cepat"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>Scan QR Absen</span>
-              </button>
-            )}
-            {onOpenChangePasswordModal && (
-              <button
-                onClick={onOpenChangePasswordModal}
-                className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                title="Ganti Password Akun Tutor"
-              >
-                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
-                Password
-              </button>
-            )}
+      {/* Action Toolbar */}
+      <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Input Presensi */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {onOpenQRScanner && (
             <button
-              onClick={() => onOpenAttendanceModal()}
-              className="px-3 py-2 bg-teal-50 hover:bg-teal-100/80 border border-teal-200 text-teal-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              id="tutor-scan-qr-btn"
+              onClick={onOpenQRScanner}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Pindai QR Code Siswa untuk Absensi Cepat"
             >
-              <PlusCircle className="w-3.5 h-3.5 text-teal-600" />
-              + Input Absensi
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Scan QR Absen</span>
             </button>
+          )}
+          <button
+            onClick={() => onOpenAttendanceModal()}
+            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>+ Input Absensi</span>
+          </button>
+        </div>
+
+        {/* Kelompok Alat Tambahan */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={onOpenBatchAttendanceModal}
+            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Absen Batch</span>
+          </button>
+          {onOpenChangePasswordModal && (
             <button
-              onClick={onOpenBatchAttendanceModal}
-              className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              onClick={onOpenChangePasswordModal}
+              className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title="Ganti Password Akun Tutor"
             >
-              <CheckSquare className="w-3.5 h-3.5 text-indigo-600" />
-              Absen Batch
+              <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+              <span>Password</span>
             </button>
-          </div>
+          )}
         </div>
       </div>
 

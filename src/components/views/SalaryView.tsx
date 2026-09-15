@@ -809,7 +809,7 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-indigo-900/50 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-indigo-900/50">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2.5 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400/15 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-400/30 whitespace-nowrap shadow-xs">
@@ -831,20 +831,20 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
               : 'Pantau akumulasi sesi mengajar kelas privat & grup, rincian siswa yang diajar, dan unduh slip gaji bulanan Anda.'}
           </p>
         </div>
+      </div>
 
-        {/* Month & Year Filter Selector & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 bg-white/10 p-2 sm:p-2.5 rounded-2xl backdrop-blur-md border border-white/10 shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-indigo-200 font-bold px-2 whitespace-nowrap">
-            <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Periode:</span>
-          </div>
+      {/* Compact Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Month & Year Filter Selector */}
+        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+          <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl border border-indigo-500/40 focus:ring-2 focus:ring-amber-400 cursor-pointer shadow-xs"
+            className="bg-transparent text-xs font-bold text-slate-800 pr-1 py-0.5 outline-hidden cursor-pointer"
           >
             {MONTH_NAMES_ID.map((name, idx) => (
-              <option key={name} value={idx + 1} className="bg-slate-900 text-white">
+              <option key={name} value={idx + 1}>
                 {name}
               </option>
             ))}
@@ -853,24 +853,27 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl border border-indigo-500/40 focus:ring-2 focus:ring-amber-400 cursor-pointer shadow-xs"
+            className="bg-transparent text-xs font-bold text-slate-800 pr-1 py-0.5 outline-hidden cursor-pointer border-l border-slate-200 pl-1.5"
           >
             {[2025, 2026, 2027].map((y) => (
-              <option key={y} value={y} className="bg-slate-900 text-white">
+              <option key={y} value={y}>
                 {y}
               </option>
             ))}
           </select>
+        </div>
 
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {isOwner && onSaveSettings && (
             <button
               onClick={() => setIsMonthRateModalOpen(true)}
               title="Sesuaikan Persentase & Tarif Khusus Periode Ini"
-              className={`px-3 py-2 ${
+              className={`px-3 py-1.5 ${
                 currentPeriodOverride
                   ? 'bg-amber-400 text-slate-950 font-black ring-2 ring-amber-300'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold'
-              } rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-md whitespace-nowrap`}
+              } rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap`}
             >
               <Sliders className="w-3.5 h-3.5 shrink-0" />
               <span>
@@ -886,9 +889,9 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
             <button
               onClick={onNavigateToSettings}
               title="Ubah Rumus Standar Gaji di Pengaturan Lembaga"
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-200 hover:text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 border border-slate-700 whitespace-nowrap"
+              className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border border-slate-200 shadow-2xs whitespace-nowrap"
             >
-              <Calculator className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+              <Calculator className="w-3.5 h-3.5 shrink-0 text-slate-500" />
               <span>Standar Lembaga</span>
             </button>
           )}
@@ -896,11 +899,11 @@ export const SalaryView: React.FC<SalaryViewProps> = ({
           <button
             id="btn-export-salary-top-excel"
             onClick={handleExportSalarySummaryExcel}
-            className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-md whitespace-nowrap"
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-semibold rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap"
             title="Unduh Rekap Honor & Gaji Semua Pengajar ke format Excel (.xlsx)"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
-            <span>Download Excel</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+            <span>Excel (.xlsx)</span>
           </button>
         </div>
       </div>

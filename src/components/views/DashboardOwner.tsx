@@ -106,72 +106,80 @@ export const DashboardOwner: React.FC<DashboardOwnerProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-      {/* Top Minimalist Header & Quick Actions */}
+      {/* Top Header */}
       <div className="bg-white rounded-2xl p-4 sm:p-7 border border-slate-200/90 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] sm:text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5" />
-                {ownerBadge}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                {formatDateIndo(today)}
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              {ownerTitle}
-            </h2>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
-              {ownerMessage}
-            </p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] sm:text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              {ownerBadge}
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              {formatDateIndo(today)}
+            </span>
           </div>
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            {ownerTitle}
+          </h2>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
+            {ownerMessage}
+          </p>
+        </div>
+      </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1 lg:pt-0">
-            {onOpenQRScanner && (
-              <button
-                id="owner-scan-qr-btn"
-                onClick={onOpenQRScanner}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm shadow-emerald-600/20"
-                title="Pindai QR Code Siswa untuk Absensi Kehadiran"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>Scan QR Absen</span>
-              </button>
-            )}
-            {onOpenChangePasswordModal && (
-              <button
-                onClick={onOpenChangePasswordModal}
-                className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                title="Ganti Password Akun Owner"
-              >
-                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
-                Password
-              </button>
-            )}
+      {/* Action Toolbar */}
+      <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Navigasi Cepat */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={() => onNavigate('student-billing')}
+            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 text-indigo-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            title="Buka Rekap Tagihan Siswa"
+          >
+            <Receipt className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Tagihan Siswa</span>
+          </button>
+          <button
+            onClick={() => onNavigate('cash-book')}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            title="Buka Buku Kas & Arus Keuangan"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Buku Kas</span>
+          </button>
+        </div>
+
+        {/* Kelompok Aksi Operasional & Input */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {onOpenQRScanner && (
             <button
-              onClick={() => onNavigate('student-billing')}
-              className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 text-indigo-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              id="owner-scan-qr-btn"
+              onClick={onOpenQRScanner}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Pindai QR Code Siswa untuk Absensi Kehadiran"
             >
-              <Receipt className="w-3.5 h-3.5 text-indigo-600" />
-              Tagihan Siswa
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Scan QR Absen</span>
             </button>
+          )}
+          <button
+            onClick={onOpenStudentModal}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            title="Daftarkan Siswa Baru"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>+ Siswa Baru</span>
+          </button>
+          {onOpenChangePasswordModal && (
             <button
-              onClick={() => onNavigate('cash-book')}
-              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              onClick={onOpenChangePasswordModal}
+              className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title="Ganti Password Akun Owner"
             >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-              Buku Kas
+              <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+              <span>Password</span>
             </button>
-            <button
-              onClick={onOpenStudentModal}
-              className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-            >
-              <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
-              + Siswa Baru
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

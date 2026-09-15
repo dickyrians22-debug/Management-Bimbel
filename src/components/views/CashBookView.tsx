@@ -370,82 +370,87 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300 pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shadow-inner shrink-0">
-              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div>
+      <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shadow-inner shrink-0">
+            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-xl font-bold text-slate-900 font-heading">
-                Buku Kas Utama & Arus Kas
+                Buku Kas Utama &amp; Arus Kas
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                Pencatatan mutasi kas terpadu (Kas Masuk & Kas Keluar) dengan saldo berjalan otomatis
-              </p>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                Saldo Terhitung Otomatis
+              </span>
             </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Pencatatan mutasi kas terpadu (Kas Masuk &amp; Kas Keluar) dengan saldo berjalan otomatis
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Dedicated Action Buttons Space */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Action Group 1: Pencatatan Transaksi */}
-          {canEdit && (
-            <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl">
-              <button
-                id="btn-cashbook-add-income"
-                onClick={() => onOpenIncomeModal()}
-                className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
-                title="Catat Kas Masuk Baru"
-              >
-                <PlusCircle className="w-4 h-4 shrink-0" />
-                <span>+ Kas Masuk</span>
-              </button>
-              <button
-                id="btn-cashbook-add-expense"
-                onClick={() => onOpenExpenseModal()}
-                className="flex-1 sm:flex-initial px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
-                title="Catat Kas Keluar Baru"
-              >
-                <MinusCircle className="w-4 h-4 shrink-0" />
-                <span>- Kas Keluar</span>
-              </button>
-            </div>
-          )}
-
-          {/* Action Group 2: Unduh & Ekspor */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl">
+      {/* Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Aksi Transaksi Kas */}
+        {canEdit ? (
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
-              id="btn-export-cashbook-excel"
-              onClick={handleExportExcel}
-              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-              title="Unduh seluruh mutasi buku kas ke format Excel (.xlsx)"
+              id="btn-cashbook-add-income"
+              onClick={() => onOpenIncomeModal()}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+              title="Catat Kas Masuk Baru"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Excel (.xlsx)</span>
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>+ Kas Masuk</span>
             </button>
-
             <button
-              id="btn-export-cashbook-png"
-              onClick={handleExportPng}
-              disabled={isExportingPng}
-              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300/80 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
-              title="Unduh visual buku kas sebagai gambar PNG"
+              id="btn-cashbook-add-expense"
+              onClick={() => onOpenExpenseModal()}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+              title="Catat Kas Keluar Baru"
             >
-              <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
-              <span>{isExportingPng ? 'Menyimpan...' : 'Gambar PNG'}</span>
-            </button>
-
-            <button
-              id="btn-print-cashbook-pdf"
-              onClick={handlePrint}
-              className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-              title="Cetak atau simpan buku kas ke format PDF (A4 Landscape)"
-            >
-              <Printer className="w-4 h-4 text-white shrink-0" />
-              <span>Cetak / PDF</span>
+              <MinusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>- Kas Keluar</span>
             </button>
           </div>
+        ) : (
+          <div />
+        )}
+
+        {/* Kelompok Unduh & Ekspor */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <button
+            id="btn-export-cashbook-excel"
+            onClick={handleExportExcel}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            title="Unduh seluruh mutasi buku kas ke format Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Excel (.xlsx)</span>
+          </button>
+
+          <button
+            id="btn-export-cashbook-png"
+            onClick={handleExportPng}
+            disabled={isExportingPng}
+            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+            title="Unduh visual buku kas sebagai gambar PNG"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+            <span>{isExportingPng ? 'Menyimpan...' : 'PNG'}</span>
+          </button>
+
+          <button
+            id="btn-print-cashbook-pdf"
+            onClick={handlePrint}
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            title="Cetak atau simpan buku kas ke format PDF (A4 Landscape)"
+          >
+            <Printer className="w-3.5 h-3.5 text-white shrink-0" />
+            <span>Cetak / PDF</span>
+          </button>
         </div>
       </div>
 

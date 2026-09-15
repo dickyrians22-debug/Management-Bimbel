@@ -171,15 +171,15 @@ export const PPDBManagementView: React.FC<PPDBManagementViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+      {/* Top Header */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/20">
-            <UserPlus className="w-6 h-6" />
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/20 shrink-0">
+            <UserPlus className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-900 font-heading">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 font-heading">
                 Manajemen PPDB &amp; Calon Siswa
               </h2>
               {countBaru > 0 && (
@@ -188,54 +188,58 @@ export const PPDBManagementView: React.FC<PPDBManagementViewProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 mt-0.5">
               Kelola pendaftar online dari portal, atur jadwal trial, dan konversi 1-klik menjadi siswa resmi.
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
+      {/* Action Toolbar */}
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        {/* Kelompok Portal & Link Publik */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={onOpenPublicPortal}
-            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-slate-200"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-200"
             title="Buka tampilan formulir portal publik"
           >
-            <Globe className="w-4 h-4 text-indigo-600" />
+            <Globe className="w-3.5 h-3.5 text-indigo-600" />
             <span>Lihat Portal Publik</span>
           </button>
 
           <button
             type="button"
             onClick={handleCopyPortalLink}
-            className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-indigo-200"
+            className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-indigo-200"
           >
             {copiedLink ? (
               <>
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span className="text-emerald-600 font-extrabold">Link Disalin!</span>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-600 font-bold">Link Disalin!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-4 h-4 text-indigo-600" />
+                <Share2 className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Salin Link PPDB</span>
               </>
             )}
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setEditingItem(null);
-              setIsEditModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>+ Input Calon Siswa (Manual)</span>
-          </button>
         </div>
+
+        {/* Kelompok Aksi Utama */}
+        <button
+          type="button"
+          onClick={() => {
+            setEditingItem(null);
+            setIsEditModalOpen(true);
+          }}
+          className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          <span>+ Input Calon Siswa (Manual)</span>
+        </button>
       </div>
 
       {/* Workflow Guide Banner */}
