@@ -21,6 +21,7 @@ import {
   Trash2,
   Receipt,
   QrCode,
+  ShieldCheck,
 } from 'lucide-react';
 import { Student, AttendanceRecord, IncomeRecord, ExpenseRecord, ActiveTab, BimbelSettings, UserSession } from '../../types';
 import {
@@ -367,6 +368,27 @@ export const DashboardOwner: React.FC<DashboardOwnerProps> = ({
                         <BookOpen className="w-3 h-3 text-slate-400 shrink-0" />
                         <span className="truncate max-w-xs">{rec.topic}</span>
                       </p>
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-amber-800 bg-amber-50/90 border border-amber-200/70 rounded-md px-2 py-0.5 w-fit">
+                        <ShieldCheck className="w-3 h-3 text-amber-600 shrink-0" />
+                        <span className="font-semibold">Input:</span>
+                        <span className="font-medium text-slate-800 truncate max-w-[140px]">
+                          {rec.recordedBy || rec.tutorName || 'Sistem'}
+                        </span>
+                        <span className="text-amber-300">•</span>
+                        <span className="font-mono text-slate-500">
+                          {rec.createdAt
+                            ? new Date(rec.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                            : rec.time}
+                        </span>
+                        {rec.lastModifiedBy && (
+                          <>
+                            <span className="text-amber-300">•</span>
+                            <span className="text-amber-700 truncate max-w-[110px]">
+                              Edit: {rec.lastModifiedBy}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 

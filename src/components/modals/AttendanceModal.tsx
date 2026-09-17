@@ -14,8 +14,9 @@ import {
   GraduationCap,
   Info,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
-import { AttendanceRecord, Student, AttendanceStatus, UserAccount, StudentLevel, ClassType } from '../../types';
+import { AttendanceRecord, Student, AttendanceStatus, UserAccount, StudentLevel, ClassType, UserRole } from '../../types';
 import { getTodayDateString, getCurrentTimeString, formatRupiah, getMonthNameIndo, resolveTutorName } from '../../utils/storage';
 
 interface AttendanceModalProps {
@@ -25,6 +26,7 @@ interface AttendanceModalProps {
   initialData?: AttendanceRecord | null;
   students: Student[];
   currentUserName: string;
+  userRole?: UserRole;
   users?: UserAccount[];
   attendance?: AttendanceRecord[];
 }
@@ -36,6 +38,7 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
   initialData,
   students,
   currentUserName,
+  userRole,
   users = [],
   attendance = [],
 }) => {
@@ -260,6 +263,8 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
       topic: formData.topic.trim() || `Pembelajaran ${selectedStudent.gradeDetail}`,
       tutorNotes: formData.tutorNotes.trim(),
       tutorName: formData.tutorName || currentUserName || 'Tutor Bimbel',
+      recordedBy: initialData?.recordedBy,
+      recordedByRole: initialData?.recordedByRole,
     });
     onClose?.();
   };
@@ -298,6 +303,51 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Audit Trail Panel - Khusus Akun Owner */}
+        {userRole === 'owner' && initialData && (
+          <div className="mx-6 mt-4 p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+              <ShieldCheck className="w-4 h-4 text-amber-600" />
+              <span>Audit Log Riwayat Input (Khusus Terlihat oleh Owner)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[11px] text-slate-700">
+              <div>
+                <span className="text-slate-500 block font-medium">Diinput Pertama Kali Oleh:</span>
+                <span className="font-bold text-slate-900">
+                  {initialData.recordedBy || initialData.tutorName || 'Sistem Bimbel'}
+                </span>
+                <span className="block text-slate-500 font-mono text-[10px] mt-0.5">
+                  {initialData.createdAt
+                    ? new Date(initialData.createdAt).toLocaleString('id-ID', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })
+                    : '-'}
+                </span>
+              </div>
+              {initialData.lastModifiedBy ? (
+                <div>
+                  <span className="text-slate-500 block font-medium">Terakhir Diedit Oleh:</span>
+                  <span className="font-bold text-amber-900">{initialData.lastModifiedBy}</span>
+                  <span className="block text-slate-500 font-mono text-[10px] mt-0.5">
+                    {initialData.lastModifiedAt
+                      ? new Date(initialData.lastModifiedAt).toLocaleString('id-ID', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })
+                      : '-'}
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <span className="text-slate-500 block font-medium">Riwayat Perubahan:</span>
+                  <span className="text-emerald-700 font-medium">Data asli belum pernah diedit</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           {/* Tanggal & Waktu Pertemuan */}

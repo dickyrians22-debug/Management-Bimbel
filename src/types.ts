@@ -175,6 +175,11 @@ export interface AttendanceRecord {
   tutorNotes?: string; // Catatan Kehadiran / Evaluasi Siswa
   tutorName: string;
   createdAt: string;
+  // Audit Trail Metadata (Hanya ditampilkan untuk Akun Owner)
+  recordedBy?: string; // Akun penginput catatan presensi (e.g. "Nanik Susilowati (Owner)", "Budi (Tutor)", "Naureen (Mandiri)")
+  recordedByRole?: UserRole | 'system'; // Role pembuat (owner, tutor, siswa, system)
+  lastModifiedBy?: string; // Nama akun yang terakhir mengedit catatan/status
+  lastModifiedAt?: string; // Waktu pengeditan terakhir
 }
 
 export type PaymentMethod =
@@ -380,4 +385,22 @@ export type ActiveTab =
   | 'profit-loss'
   | 'student-portal'
   | 'settings';
+
+export type UndoCategory =
+  | 'student'
+  | 'attendance'
+  | 'income'
+  | 'expense'
+  | 'user'
+  | 'ppdb'
+  | 'settings';
+
+export interface UndoItem {
+  id: string;
+  title: string;
+  category: UndoCategory;
+  timestamp: number;
+  undo: () => Promise<void> | void;
+  redo?: () => Promise<void> | void;
+}
 

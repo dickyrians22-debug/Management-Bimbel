@@ -8,16 +8,24 @@
         "id": { "type": "string" },
         "code": { "type": "string" },
         "name": { "type": "string" },
-        "nickname": { "type": "string" },
+        "level": { "type": "string" },
+        "gradeDetail": { "type": "string" },
+        "classType": { "type": "string" },
+        "packageType": { "type": "string" },
+        "pricePerSession": { "type": "number" },
+        "monthlyFee": { "type": "number" },
         "parentName": { "type": "string" },
         "parentPhone": { "type": "string" },
-        "gradeDetail": { "type": "string" },
-        "level": { "type": "string" },
-        "classType": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string" },
+        "joinDate": { "type": "string" },
         "tutorName": { "type": "string" },
-        "status": { "type": "string" }
+        "notes": { "type": "string" },
+        "sessionQuota": { "type": "number" },
+        "remainingSessions": { "type": "number" },
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "code", "name"]
+      "required": ["id", "code", "name", "level", "gradeDetail", "classType", "status"]
     },
     "AttendanceRecord": {
       "title": "AttendanceRecord",
@@ -26,12 +34,23 @@
       "properties": {
         "id": { "type": "string" },
         "date": { "type": "string" },
+        "time": { "type": "string" },
         "studentId": { "type": "string" },
+        "studentCode": { "type": "string" },
         "studentName": { "type": "string" },
+        "classType": { "type": "string" },
+        "status": { "type": "string" },
+        "sessionNumber": { "type": "number" },
+        "topic": { "type": "string" },
+        "tutorNotes": { "type": "string" },
         "tutorName": { "type": "string" },
-        "status": { "type": "string" }
+        "createdAt": { "type": "string" },
+        "recordedBy": { "type": "string" },
+        "recordedByRole": { "type": "string" },
+        "lastModifiedBy": { "type": "string" },
+        "lastModifiedAt": { "type": "string" }
       },
-      "required": ["id", "date", "studentId", "status"]
+      "required": ["id", "date", "studentId", "studentName", "status"]
     },
     "IncomeRecord": {
       "title": "IncomeRecord",
@@ -39,12 +58,32 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "date": { "type": "string" },
+        "datePaid": { "type": "string" },
+        "category": { "type": "string" },
+        "incomeCategory": { "type": "string" },
+        "accrualMonth": { "type": "number" },
+        "accrualYear": { "type": "number" },
+        "studentId": { "type": "string" },
+        "studentCode": { "type": "string" },
+        "studentName": { "type": "string" },
+        "sourceName": { "type": "string" },
         "amount": { "type": "number" },
-        "type": { "type": "string" },
-        "description": { "type": "string" }
+        "originalAmount": { "type": "number" },
+        "discountType": { "type": "string" },
+        "discountValue": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "discountReason": { "type": "string" },
+        "totalBill": { "type": "number" },
+        "remainingBill": { "type": "number" },
+        "paymentStatus": { "type": "string" },
+        "sessionsCount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "receivedBy": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "date", "amount", "type"]
+      "required": ["id", "datePaid", "amount", "accrualMonth", "accrualYear"]
     },
     "ExpenseRecord": {
       "title": "ExpenseRecord",
@@ -53,9 +92,16 @@
       "properties": {
         "id": { "type": "string" },
         "date": { "type": "string" },
-        "amount": { "type": "number" },
         "category": { "type": "string" },
-        "description": { "type": "string" }
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "paidTo": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "receiptRef": { "type": "string" },
+        "recordedBy": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
       },
       "required": ["id", "date", "amount", "category"]
     },
@@ -66,19 +112,37 @@
       "properties": {
         "id": { "type": "string" },
         "username": { "type": "string" },
+        "password": { "type": "string" },
         "name": { "type": "string" },
-        "role": { "type": "string" }
+        "role": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "specialty": { "type": "string" },
+        "code": { "type": "string" },
+        "linkedStudentId": { "type": "string" },
+        "avatar": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "username", "role"]
+      "required": ["id", "username", "role", "name"]
     },
     "BimbelSettings": {
       "title": "BimbelSettings",
-      "description": "Application settings and WhatsApp template configurations",
+      "description": "Application settings and configuration",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "bimbelName": { "type": "string" },
-        "phone": { "type": "string" }
+        "tagline": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "systemSalaryCategory": { "type": "string" },
+        "systemSppCategory": { "type": "string" },
+        "expenseCategories": { "type": "array" },
+        "incomeCategories": { "type": "array" },
+        "paymentMethods": { "type": "array" }
       },
       "required": ["id", "bimbelName"]
     },
@@ -88,11 +152,31 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "registrationNo": { "type": "string" },
-        "fullName": { "type": "string" },
-        "status": { "type": "string" }
+        "registrationNumber": { "type": "string" },
+        "studentName": { "type": "string" },
+        "nickname": { "type": "string" },
+        "gender": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "schoolOrigin": { "type": "string" },
+        "level": { "type": "string" },
+        "gradeDetail": { "type": "string" },
+        "classType": { "type": "string" },
+        "interestedSubjects": { "type": "array" },
+        "preferredSchedule": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "parentEmail": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string" },
+        "trialDate": { "type": "string" },
+        "assignedTutorName": { "type": "string" },
+        "convertedStudentId": { "type": "string" },
+        "convertedStudentCode": { "type": "string" },
+        "registrationDate": { "type": "string" },
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "registrationNo", "fullName", "status"]
+      "required": ["id", "registrationNumber", "studentName", "status", "parentPhone"]
     }
   },
   "firestore": {

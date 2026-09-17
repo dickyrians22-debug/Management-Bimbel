@@ -12,10 +12,11 @@ import {
   Cloud,
   CheckCircle2,
 } from 'lucide-react';
-import { UserSession, UserRole, UserAccount, BimbelSettings } from '../../types';
+import { UserSession, UserRole, UserAccount, BimbelSettings, UndoItem } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { BimbelLogo } from '../common/BimbelLogo';
 import { getDocumentThemeStyles } from '../../utils/theme';
+import { UndoRedoControls } from './UndoRedoControls';
 
 interface NavbarProps {
   currentUser: UserSession;
@@ -26,10 +27,16 @@ interface NavbarProps {
   onLogout: () => void;
   onResetData?: () => void;
   onToggleMobileSidebar: () => void;
+  onToggleDesktopSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
   onOpenChangePasswordModal?: () => void;
   onOpenPublicPortal?: () => void;
   todayAttendanceCount?: number;
   totalStudentsCount?: number;
+  undoStack?: UndoItem[];
+  redoStack?: UndoItem[];
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,8 +45,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   isCloudConnected = true,
   onLogout,
   onToggleMobileSidebar,
+  onToggleDesktopSidebar,
+  isSidebarCollapsed = false,
   onOpenChangePasswordModal,
   onOpenPublicPortal,
+  undoStack = [],
+  redoStack = [],
+  onUndo,
+  onRedo,
 }) => {
   const [timeStr, setTimeStr] = useState('');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -173,10 +186,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Left: Mobile Toggle & Brand */}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
             <button
-              onClick={onToggleMobileSidebar}
-              className={`lg:hidden p-1.5 sm:p-2 rounded-xl ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/10'} focus:outline-none transition cursor-pointer shrink-0 active:scale-95`}
-              title="Buka Menu Navigasi"
-              aria-label="Buka Menu"
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  onToggleMobileSidebar();
+                } else if (onToggleDesktopSidebar) {
+                  onToggleDesktopSidebar();
+                } else {
+                  onToggleMobileSidebar();
+                }
+              }}
+              className={`p-1.5 sm:p-2 rounded-xl ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/10'} focus:outline-none transition cursor-pointer shrink-0 active:scale-95`}
+              title={isSidebarCollapsed ? 'Buka Menu Samping' : 'Ciutkan / Tutup Menu Samping'}
+              aria-label="Buka / Tutup Menu Samping"
             >
               <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -222,6 +243,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right: Actions, Live Clock, User Profile, & Logout */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Undo / Redo Global Controls */}
+            {onUndo && (
+              <UndoRedoControls
+                undoStack={undoStack}
+                redoStack={redoStack}
+                onUndo={onUndo}
+                onRedo={onRedo || (() => {})}
+                isLight={isLight}
+              />
+            )}
+
             {/* Cloud Realtime Status (Hidden on Mobile) */}
             <div
               title={isCloudConnected ? 'Cloud Firebase Firestore Terhubung Realtime' : 'Mode Offline / Local Storage'}

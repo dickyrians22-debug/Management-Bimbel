@@ -20,6 +20,7 @@ import {
   ChevronUp,
   ChevronsUpDown,
   QrCode,
+  ShieldCheck,
 } from 'lucide-react';
 import { AttendanceRecord, Student, UserRole, AttendanceStatus, UserAccount } from '../../types';
 import { formatDateIndo, getTodayDateString, resolveTutorName, findAttendanceDuplicates } from '../../utils/storage';
@@ -383,6 +384,14 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                   <th className="py-3.5 px-4">Materi Pembelajaran</th>
                   <th className="py-3.5 px-4">Catatan Perkembangan</th>
                   <th className="py-3.5 px-4">Tutor</th>
+                  {userRole === 'owner' && (
+                    <th className="py-3.5 px-4 bg-amber-50/80 text-amber-900 border-l border-amber-200/70 text-xs font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Audit Input (Owner)</span>
+                      </div>
+                    </th>
+                  )}
                   {canEdit && <th className="py-3.5 px-4 text-right">Aksi</th>}
                 </tr>
               </thead>
@@ -459,6 +468,53 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       <td className="py-3 px-4 text-xs font-medium text-slate-700">
                         {resolveTutorName(rec.tutorName, users)}
                       </td>
+
+                      {/* Audit Log (Hanya Terlihat oleh Owner) */}
+                      {userRole === 'owner' && (
+                        <td className="py-3 px-4 bg-amber-50/30 border-l border-amber-100">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${
+                                rec.recordedByRole === 'owner'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : rec.recordedByRole === 'tutor'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : rec.recordedByRole === 'siswa'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {rec.recordedByRole || 'SYSTEM'}
+                            </span>
+                            <span className="font-semibold text-xs text-slate-900">
+                              {rec.recordedBy || rec.tutorName || 'Sistem Bimbel'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-1">
+                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>
+                              {rec.createdAt
+                                ? new Date(rec.createdAt).toLocaleString('id-ID', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : `${rec.date} ${rec.time}`}
+                            </span>
+                          </div>
+                          {rec.lastModifiedBy && (
+                            <div className="text-[10px] text-amber-800 bg-amber-100/70 border border-amber-200/60 rounded px-1.5 py-0.5 mt-1 inline-block">
+                              <span className="font-bold">Edit:</span> {rec.lastModifiedBy}
+                              {rec.lastModifiedAt && (
+                                <span className="text-slate-500 ml-1 font-mono text-[9px]">
+                                  ({new Date(rec.lastModifiedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
 
                       {/* Aksi (Edit & Hapus) */}
                       {canEdit && (

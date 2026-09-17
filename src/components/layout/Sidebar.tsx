@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -11,11 +11,15 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   Settings,
   Wallet,
   Receipt,
   UserPlus,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { ActiveTab, UserSession, BimbelSettings } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
@@ -26,6 +30,8 @@ interface SidebarProps {
   currentUser: UserSession;
   isOpenMobile: boolean;
   onCloseMobile?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   todayAttendanceCount: number;
   totalStudentsCount: number;
   prospectiveStudentsCount?: number;
@@ -38,12 +44,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   isOpenMobile,
   onCloseMobile,
+  isCollapsed = false,
+  onToggleCollapse,
   todayAttendanceCount,
   totalStudentsCount,
   prospectiveStudentsCount = 0,
   settings,
 }) => {
   const role = currentUser.role;
+
+  // Close mobile sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpenMobile) {
+        onCloseMobile?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpenMobile, onCloseMobile]);
 
   const footerTitle = settings?.sidebarFooterTitle || settings?.bimbelName || 'RUMAH BELAJAR';
   const footerTagline = settings?.sidebarFooterTagline || settings?.tagline || '“Belajar Sampai Paham”';
@@ -215,59 +234,135 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile Backdrop with Blur */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden no-print"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs lg:hidden no-print animate-in fade-in duration-200"
           onClick={() => onCloseMobile?.()}
+          aria-label="Tutup menu samping"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`no-print fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 h-full shrink-0 ${
-          isOpenMobile ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`no-print fixed lg:static inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between transition-all duration-300 ease-in-out h-full shrink-0 ${
+          isCollapsed ? 'lg:w-20' : 'lg:w-72'
+        } ${isOpenMobile ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full w-72 lg:translate-x-0 lg:shadow-none'}`}
       >
         {/* User Card Header */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <UserAvatar
-              avatar={currentUser.avatar}
-              name={currentUser.name}
-              role={currentUser.role}
-              size="md"
-              rounded="rounded-2xl"
-              className="border-2 border-indigo-600/30 shadow-sm"
-            />
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</h4>
-              <p className="text-[11px] text-slate-500 truncate">{currentUser.specialty || currentUser.code}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span
-                  className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                    role === 'owner'
-                      ? 'bg-amber-100 text-amber-900'
-                      : role === 'tutor'
-                      ? 'bg-teal-100 text-teal-900'
-                      : 'bg-indigo-100 text-indigo-900'
-                  }`}
-                >
-                  {role === 'owner' ? '★ Owner' : role === 'tutor' ? '✦ Tutor' : '● Siswa/Wali'}
-                </span>
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50/80">
+          {!isCollapsed ? (
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <UserAvatar
+                  avatar={currentUser.avatar}
+                  name={currentUser.name}
+                  role={currentUser.role}
+                  size="md"
+                  rounded="rounded-2xl"
+                  className="border-2 border-indigo-600/30 shadow-xs shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</h4>
+                  <p className="text-[11px] text-slate-500 truncate">{currentUser.specialty || currentUser.code}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                        role === 'owner'
+                          ? 'bg-amber-100 text-amber-900'
+                          : role === 'tutor'
+                          ? 'bg-teal-100 text-teal-900'
+                          : 'bg-indigo-100 text-indigo-900'
+                      }`}
+                    >
+                      {role === 'owner' ? '★ Owner' : role === 'tutor' ? '✦ Tutor' : '● Siswa/Wali'}
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              {/* Close Button on Mobile */}
+              <button
+                type="button"
+                onClick={() => onCloseMobile?.()}
+                className="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200/80 transition cursor-pointer active:scale-95 shrink-0"
+                title="Tutup Menu Samping (Esc)"
+                aria-label="Tutup Menu Samping"
+              >
+                <X className="w-5 h-5 stroke-[2.2]" />
+              </button>
+
+              {/* Collapse Button on Desktop */}
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer active:scale-95 shrink-0"
+                  title="Ciutkan Menu Samping"
+                  aria-label="Ciutkan Menu Samping"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              )}
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <UserAvatar
+                avatar={currentUser.avatar}
+                name={currentUser.name}
+                role={currentUser.role}
+                size="sm"
+                rounded="rounded-xl"
+                className="border border-indigo-600/30 shadow-xs"
+              />
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer active:scale-95"
+                  title="Lebarkan Menu Samping"
+                  aria-label="Lebarkan Menu Samping"
+                >
+                  <PanelLeftOpen className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation Menu */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-          <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-            Menu Utama
-          </div>
+        <div className={`flex-1 overflow-y-auto space-y-1.5 ${isCollapsed ? 'p-2' : 'p-3'}`}>
+          {!isCollapsed && (
+            <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              Menu Utama
+            </div>
+          )}
 
           {navItems.map((item) => {
             const isActive = currentTab === item.id;
+
+            if (isCollapsed) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  title={`${item.label} - ${item.description}`}
+                  className={`relative w-full flex items-center justify-center p-2.5 rounded-xl transition cursor-pointer group ${
+                    isActive
+                      ? 'bg-theme-primary text-white font-bold shadow-theme'
+                      : 'text-slate-600 hover:bg-slate-100 font-medium'
+                  }`}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center">
+                    {item.icon}
+                  </div>
+                  {item.badge !== undefined && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white" />
+                  )}
+                </button>
+              );
+            }
+
             return (
               <button
                 key={item.id}
@@ -313,20 +408,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Footer Info Box */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50">
-          <div className="p-3 bg-white border border-slate-200/80 rounded-xl text-center shadow-xs">
-            <p className="text-[11px] font-extrabold text-indigo-950 font-heading">
-              {footerTitle}
-            </p>
-            <p className="text-[10px] text-amber-700 font-semibold italic mt-0.5">
-              {footerTagline}
-            </p>
-            {footerNote && (
-              <p className="text-[9px] text-slate-400 mt-1">
-                {footerNote}
+        <div className={`border-t border-slate-100 bg-slate-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          {!isCollapsed ? (
+            <div className="p-3 bg-white border border-slate-200/80 rounded-xl text-center shadow-xs">
+              <p className="text-[11px] font-extrabold text-indigo-950 font-heading">
+                {footerTitle}
               </p>
-            )}
-          </div>
+              <p className="text-[10px] text-amber-700 font-semibold italic mt-0.5">
+                {footerTagline}
+              </p>
+              {footerNote && (
+                <p className="text-[9px] text-slate-400 mt-1">
+                  {footerNote}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center">
+              <span className="text-[10px] font-bold text-slate-400">SIGMA</span>
+            </div>
+          )}
         </div>
       </aside>
     </>

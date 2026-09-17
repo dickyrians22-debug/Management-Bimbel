@@ -6,9 +6,11 @@ import {
   ExpenseRecord,
   UserSession,
   UserAccount,
+  UserRole,
   BimbelSettings,
   ActiveTab,
   ProspectiveStudent,
+  UndoItem,
 } from './types';
 import {
   getInitialStudents,
@@ -104,6 +106,7 @@ import { UserAccountModal } from './components/modals/UserAccountModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { QRScannerModal } from './components/modals/QRScannerModal';
 import { StudentQRCardModal } from './components/modals/StudentQRCardModal';
+import { UndoToast, ToastPayload } from './components/common/UndoToast';
 import { applyThemeVariables } from './utils/theme';
 
 // Helper: Ensure accounts have unique usernames and no role collisions (e.g. non-owner cannot have username "owner")
@@ -175,6 +178,7 @@ export default function App() {
   // 2. Navigation State
   const [currentTab, setCurrentTab] = useState<ActiveTab>('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCloudConnected, setIsCloudConnected] = useState(true);
   const [showPublicPortal, setShowPublicPortal] = useState(false);
 
@@ -251,15 +255,117 @@ export default function App() {
     onConfirm: () => {},
   });
 
-  // 5. Toast / Notification State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // 5. Undo / Redo & Toast Notification State
+  const [undoStack, setUndoStack] = useState<UndoItem[]>([]);
+  const [redoStack, setRedoStack] = useState<UndoItem[]>([]);
+  const [activeToast, setActiveToast] = useState<ToastPayload | null>(null);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage((current) => (current === msg ? null : current));
-    }, 3000);
+  const showToast = (
+    msg: string,
+    type: 'success' | 'info' | 'warning' | 'error' = 'success',
+    undoItem?: UndoItem,
+    duration?: number
+  ) => {
+    setActiveToast({
+      id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      message: msg,
+      type,
+      undoItem,
+      duration,
+    });
   };
+
+  const pushUndoAction = (action: UndoItem, showInToast: boolean = true) => {
+    setUndoStack((prev) => [action, ...prev.slice(0, 19)]); // Keep up to 20 actions
+    setRedoStack([]); // Clear redo on fresh action
+    if (showInToast) {
+      showToast(action.title, 'success', action);
+    }
+  };
+
+  const performUndo = async (specificItem?: UndoItem | unknown) => {
+    // Robust check: Ensure specificItem is an actual UndoItem with an .undo() function,
+    // avoiding SyntheticEvent (MouseEvent) passed by React onClick handlers
+    const targetItem =
+      specificItem && typeof (specificItem as UndoItem).undo === 'function'
+        ? (specificItem as UndoItem)
+        : undoStack[0];
+
+    if (!targetItem || typeof targetItem.undo !== 'function') {
+      console.warn('No valid undo item found in stack');
+      return;
+    }
+
+    try {
+      await targetItem.undo();
+      setUndoStack((prev) => prev.filter((item) => item.id !== targetItem.id));
+      if (targetItem.redo) {
+        setRedoStack((prev) => [targetItem, ...prev.slice(0, 19)]);
+      }
+      showToast(`Perubahan berhasil dibatalkan: "${targetItem.title}"`, 'info', undefined, 4000);
+    } catch (error) {
+      console.error('Error executing undo:', error);
+      showToast('Gagal membatalkan perubahan.', 'error');
+    }
+  };
+
+  const performRedo = async (specificItem?: UndoItem | unknown) => {
+    const targetItem =
+      specificItem && typeof (specificItem as UndoItem).redo === 'function'
+        ? (specificItem as UndoItem)
+        : redoStack[0];
+
+    if (!targetItem || typeof targetItem.redo !== 'function') {
+      console.warn('No valid redo item found in stack');
+      return;
+    }
+
+    try {
+      await targetItem.redo();
+      setRedoStack((prev) => prev.filter((item) => item.id !== targetItem.id));
+      setUndoStack((prev) => [targetItem, ...prev.slice(0, 19)]);
+      showToast(`Tindakan diulangi: "${targetItem.title}"`, 'info', undefined, 4000);
+    } catch (error) {
+      console.error('Error executing redo:', error);
+      showToast('Gagal mengulangi tindakan.', 'error');
+    }
+  };
+
+  // Keyboard shortcut listener: Ctrl+Z / Cmd+Z for Undo, Ctrl+Y / Cmd+Shift+Z for Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isEditing =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true');
+
+      if (isEditing) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        performUndo();
+      } else if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')
+      ) {
+        e.preventDefault();
+        performRedo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        if (window.innerWidth < 1024) {
+          setIsMobileSidebarOpen((prev) => !prev);
+        } else {
+          setIsSidebarCollapsed((prev) => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undoStack, redoStack]);
+
 
   // --- Realtime Firestore Cloud Synchronization & Auto-Seeding ---
   useEffect(() => {
@@ -502,6 +608,12 @@ export default function App() {
 
   const handleSaveStudent = (data: Omit<Student, 'id' | 'createdAt'> & { id?: string }) => {
     if (data.id) {
+      const prevStudent = students.find((s) => s.id === data.id);
+      const prevStudentsList = [...students];
+      const prevAttendanceList = [...attendance];
+      const prevIncomesList = [...incomes];
+      const prevUsersList = [...users];
+
       // 1. Update Students Master Data
       const updated = students.map((s) => (s.id === data.id ? { ...s, ...data } : s));
       setStudents(updated);
@@ -570,7 +682,45 @@ export default function App() {
         batchSeedToFirestore(COLLECTIONS.USERS, affectedUsers).catch(console.error);
       }
 
-      showToast(`Data siswa "${data.name}" dan seluruh presensi/keuangan berhasil disinkronkan!`);
+      if (prevStudent) {
+        pushUndoAction({
+          id: `undo-std-edit-${Date.now()}`,
+          title: `Perbarui Siswa: ${data.name} (${data.code})`,
+          category: 'student',
+          timestamp: Date.now(),
+          undo: async () => {
+            setStudents(prevStudentsList);
+            saveStudents(prevStudentsList);
+            await syncDocToFirestore(COLLECTIONS.STUDENTS, data.id!, prevStudent);
+
+            setAttendance(prevAttendanceList);
+            saveAttendance(prevAttendanceList);
+            const affectedAttendance = prevAttendanceList.filter((a) => a.studentId === data.id);
+            if (affectedAttendance.length > 0) {
+              await batchSeedToFirestore(COLLECTIONS.ATTENDANCE, affectedAttendance);
+            }
+
+            setIncomes(prevIncomesList);
+            saveIncomes(prevIncomesList);
+            const affectedIncomes = prevIncomesList.filter((inc) => inc.studentId === data.id);
+            if (affectedIncomes.length > 0) {
+              await batchSeedToFirestore(COLLECTIONS.INCOMES, affectedIncomes);
+            }
+
+            setUsers(prevUsersList);
+            saveUsers(prevUsersList);
+            const affectedUsers = prevUsersList.filter((u) => u.linkedStudentId === data.id || u.code === data.code);
+            if (affectedUsers.length > 0) {
+              await batchSeedToFirestore(COLLECTIONS.USERS, affectedUsers);
+            }
+          },
+          redo: async () => {
+            handleSaveStudent(data);
+          },
+        });
+      } else {
+        showToast(`Data siswa "${data.name}" dan seluruh presensi/keuangan berhasil disinkronkan!`);
+      }
     } else {
       // Add
       const newStudent: Student = {
@@ -582,7 +732,29 @@ export default function App() {
       setStudents(updated);
       saveStudents(updated);
       syncDocToFirestore(COLLECTIONS.STUDENTS, newStudent.id, newStudent).catch(console.error);
-      showToast(`Siswa baru "${data.name}" (${data.code}) berhasil ditambahkan.`);
+
+      pushUndoAction({
+        id: `undo-std-add-${newStudent.id}`,
+        title: `Tambah Siswa: ${newStudent.name} (${newStudent.code})`,
+        category: 'student',
+        timestamp: Date.now(),
+        undo: async () => {
+          setStudents((prev) => {
+            const reverted = prev.filter((s) => s.id !== newStudent.id);
+            saveStudents(reverted);
+            return reverted;
+          });
+          await deleteDocFromFirestore(COLLECTIONS.STUDENTS, newStudent.id);
+        },
+        redo: async () => {
+          setStudents((prev) => {
+            const restored = [newStudent, ...prev];
+            saveStudents(restored);
+            return restored;
+          });
+          await syncDocToFirestore(COLLECTIONS.STUDENTS, newStudent.id, newStudent);
+        },
+      });
     }
   };
 
@@ -606,7 +778,33 @@ export default function App() {
         } catch (err) {
           console.error('Gagal menghapus siswa dari Firestore:', err);
         }
-        showToast(`Siswa "${itemName}" telah berhasil dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-std-del-${target.id}-${Date.now()}`,
+            title: `Hapus Siswa: ${target.name} (${target.code})`,
+            category: 'student',
+            timestamp: Date.now(),
+            undo: async () => {
+              setStudents((prev) => {
+                const restored = [target, ...prev];
+                saveStudents(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.STUDENTS, target.id, target);
+            },
+            redo: async () => {
+              setStudents((prev) => {
+                const filtered = prev.filter((s) => s.id !== target.id);
+                saveStudents(filtered);
+                return filtered;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.STUDENTS, target.id);
+            },
+          });
+        } else {
+          showToast(`Siswa "${itemName}" telah berhasil dihapus.`);
+        }
       },
     });
   };
@@ -636,13 +834,30 @@ export default function App() {
 
   // --- Handlers: Prospective Students (PPDB) ---
   const handleSaveProspectiveStudent = (data: ProspectiveStudent) => {
-    const isEdit = prospectiveStudents.some((p) => p.id === data.id);
-    if (isEdit) {
+    const existing = prospectiveStudents.find((p) => p.id === data.id);
+    if (existing) {
       const updated = prospectiveStudents.map((p) => (p.id === data.id ? data : p));
       setProspectiveStudents(updated);
       saveProspectiveStudents(updated);
       syncDocToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, data.id, data).catch(console.error);
-      showToast(`Data calon siswa "${data.studentName}" berhasil diperbarui.`);
+
+      pushUndoAction({
+        id: `undo-prosp-edit-${data.id}-${Date.now()}`,
+        title: `Ubah Calon Siswa: ${existing.studentName}`,
+        category: 'ppdb',
+        timestamp: Date.now(),
+        undo: async () => {
+          setProspectiveStudents((prev) => {
+            const reverted = prev.map((p) => (p.id === existing.id ? existing : p));
+            saveProspectiveStudents(reverted);
+            return reverted;
+          });
+          await syncDocToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, existing.id, existing);
+        },
+        redo: async () => {
+          handleSaveProspectiveStudent(data);
+        },
+      });
     } else {
       const newProspective: ProspectiveStudent = {
         ...data,
@@ -654,7 +869,29 @@ export default function App() {
       setProspectiveStudents(updated);
       saveProspectiveStudents(updated);
       syncDocToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, newProspective.id, newProspective).catch(console.error);
-      showToast(`Calon siswa "${data.studentName}" (${data.registrationNumber}) berhasil didaftarkan!`);
+
+      pushUndoAction({
+        id: `undo-prosp-add-${newProspective.id}`,
+        title: `Daftar Calon Siswa: ${newProspective.studentName}`,
+        category: 'ppdb',
+        timestamp: Date.now(),
+        undo: async () => {
+          setProspectiveStudents((prev) => {
+            const reverted = prev.filter((p) => p.id !== newProspective.id);
+            saveProspectiveStudents(reverted);
+            return reverted;
+          });
+          await deleteDocFromFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, newProspective.id);
+        },
+        redo: async () => {
+          setProspectiveStudents((prev) => {
+            const restored = [newProspective, ...prev];
+            saveProspectiveStudents(restored);
+            return restored;
+          });
+          await syncDocToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, newProspective.id, newProspective);
+        },
+      });
     }
   };
 
@@ -678,7 +915,33 @@ export default function App() {
         } catch (err) {
           console.error('Gagal menghapus calon siswa dari Firestore:', err);
         }
-        showToast(`Data pendaftar "${itemName}" telah dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-prosp-del-${target.id}-${Date.now()}`,
+            title: `Hapus Calon Siswa: ${target.studentName}`,
+            category: 'ppdb',
+            timestamp: Date.now(),
+            undo: async () => {
+              setProspectiveStudents((prev) => {
+                const restored = [target, ...prev];
+                saveProspectiveStudents(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, target.id, target);
+            },
+            redo: async () => {
+              setProspectiveStudents((prev) => {
+                const reverted = prev.filter((p) => p.id !== target.id);
+                saveProspectiveStudents(reverted);
+                return reverted;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, target.id);
+            },
+          });
+        } else {
+          showToast(`Data pendaftar "${itemName}" telah dihapus.`);
+        }
       },
     });
   };
@@ -820,54 +1083,136 @@ export default function App() {
   };
 
   const handleSaveAttendance = (
-    data: Omit<AttendanceRecord, 'id' | 'createdAt'> & { id?: string }
+    data: Omit<AttendanceRecord, 'id' | 'createdAt'> & { id?: string; recordedBy?: string; recordedByRole?: UserRole | 'system' }
   ) => {
-    setAttendance((prevAttendance) => {
-      if (data.id) {
-        const updated = prevAttendance.map((a) => (a.id === data.id ? { ...a, ...data } : a));
-        saveAttendance(updated);
-        const targetObj = updated.find((a) => a.id === data.id);
-        if (targetObj) {
-          syncDocToFirestore(COLLECTIONS.ATTENDANCE, data.id, targetObj).catch(console.error);
-        }
-        showToast(`Data presensi "${data.studentName}" berhasil diperbarui.`);
-        return updated;
-      } else {
-        // Prevent double attendance on the same date
-        const existing = findMatchingAttendanceRecord(
-          prevAttendance,
-          { id: data.studentId, code: data.studentCode, name: data.studentName },
-          data.date
-        );
+    const creatorLabel = currentUser
+      ? `${currentUser.name} (${currentUser.role === 'owner' ? 'Owner' : currentUser.role === 'tutor' ? 'Tutor' : 'Siswa'})`
+      : 'Sistem Bimbel';
+    const modifierLabel = creatorLabel;
 
-        if (existing) {
-          const updatedRecord: AttendanceRecord = {
-            ...existing,
-            ...data,
-            id: existing.id,
-          };
-          const updated = prevAttendance.map((a) => (a.id === existing.id ? updatedRecord : a));
-          saveAttendance(updated);
-          syncDocToFirestore(COLLECTIONS.ATTENDANCE, existing.id, updatedRecord).catch(console.error);
-          showToast(`Presensi "${data.studentName}" tanggal ${data.date} sudah ada, data diperbarui.`);
-          return updated;
-        } else {
-          const newRecord: AttendanceRecord = {
-            ...data,
-            id: `att-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-          };
-          const updated = [newRecord, ...prevAttendance];
-          saveAttendance(updated);
-          syncDocToFirestore(COLLECTIONS.ATTENDANCE, newRecord.id, newRecord).catch(console.error);
-          showToast(`Presensi "${data.studentName}" [${data.status}] berhasil disimpan.`);
-          return updated;
-        }
+    if (data.id) {
+      const existing = attendance.find((a) => a.id === data.id);
+      const updatedRecord: AttendanceRecord = {
+        ...(existing || {}),
+        ...data,
+        id: data.id,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        recordedBy: existing?.recordedBy || data.recordedBy || creatorLabel,
+        recordedByRole: existing?.recordedByRole || data.recordedByRole || currentUser?.role || 'system',
+        lastModifiedBy: modifierLabel,
+        lastModifiedAt: new Date().toISOString(),
+      };
+      const updated = attendance.map((a) => (a.id === data.id ? updatedRecord : a));
+      setAttendance(updated);
+      saveAttendance(updated);
+      syncDocToFirestore(COLLECTIONS.ATTENDANCE, data.id, updatedRecord).catch(console.error);
+
+      if (existing) {
+        pushUndoAction({
+          id: `undo-att-edit-${updatedRecord.id}-${Date.now()}`,
+          title: `Ubah Presensi: ${data.studentName} (${data.date})`,
+          category: 'attendance',
+          timestamp: Date.now(),
+          undo: async () => {
+            setAttendance((prev) => {
+              const reverted = prev.map((a) => (a.id === existing.id ? existing : a));
+              saveAttendance(reverted);
+              return reverted;
+            });
+            await syncDocToFirestore(COLLECTIONS.ATTENDANCE, existing.id, existing);
+          },
+          redo: async () => {
+            handleSaveAttendance(data);
+          },
+        });
+      } else {
+        showToast(`Data presensi "${data.studentName}" berhasil diperbarui.`);
       }
-    });
+    } else {
+      // Prevent double attendance on the same date
+      const existing = findMatchingAttendanceRecord(
+        attendance,
+        { id: data.studentId, code: data.studentCode, name: data.studentName },
+        data.date
+      );
+
+      if (existing) {
+        const updatedRecord: AttendanceRecord = {
+          ...existing,
+          ...data,
+          id: existing.id,
+          recordedBy: existing.recordedBy || creatorLabel,
+          recordedByRole: existing.recordedByRole || currentUser?.role || 'system',
+          lastModifiedBy: modifierLabel,
+          lastModifiedAt: new Date().toISOString(),
+        };
+        const updated = attendance.map((a) => (a.id === existing.id ? updatedRecord : a));
+        setAttendance(updated);
+        saveAttendance(updated);
+        syncDocToFirestore(COLLECTIONS.ATTENDANCE, existing.id, updatedRecord).catch(console.error);
+
+        pushUndoAction({
+          id: `undo-att-edit-${existing.id}-${Date.now()}`,
+          title: `Ubah Presensi: ${data.studentName} (${data.date})`,
+          category: 'attendance',
+          timestamp: Date.now(),
+          undo: async () => {
+            setAttendance((prev) => {
+              const reverted = prev.map((a) => (a.id === existing.id ? existing : a));
+              saveAttendance(reverted);
+              return reverted;
+            });
+            await syncDocToFirestore(COLLECTIONS.ATTENDANCE, existing.id, existing);
+          },
+          redo: async () => {
+            handleSaveAttendance(data);
+          },
+        });
+      } else {
+        const newRecord: AttendanceRecord = {
+          ...data,
+          id: `att-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          recordedBy: data.recordedBy || creatorLabel,
+          recordedByRole: data.recordedByRole || currentUser?.role || 'system',
+        };
+        const updated = [newRecord, ...attendance];
+        setAttendance(updated);
+        saveAttendance(updated);
+        syncDocToFirestore(COLLECTIONS.ATTENDANCE, newRecord.id, newRecord).catch(console.error);
+
+        pushUndoAction({
+          id: `undo-att-add-${newRecord.id}`,
+          title: `Catat Presensi: ${newRecord.studentName} [${newRecord.status}]`,
+          category: 'attendance',
+          timestamp: Date.now(),
+          undo: async () => {
+            setAttendance((prev) => {
+              const reverted = prev.filter((a) => a.id !== newRecord.id);
+              saveAttendance(reverted);
+              return reverted;
+            });
+            await deleteDocFromFirestore(COLLECTIONS.ATTENDANCE, newRecord.id);
+          },
+          redo: async () => {
+            setAttendance((prev) => {
+              const restored = [newRecord, ...prev];
+              saveAttendance(restored);
+              return restored;
+            });
+            await syncDocToFirestore(COLLECTIONS.ATTENDANCE, newRecord.id, newRecord);
+          },
+        });
+      }
+    }
   };
 
   const handleBatchAttendance = (newRecords: Omit<AttendanceRecord, 'id' | 'createdAt'>[]) => {
+    const creatorLabel = currentUser
+      ? `${currentUser.name} (${currentUser.role === 'owner' ? 'Owner' : 'Tutor'})`
+      : 'Tutor Bimbel';
+    const modifierLabel = creatorLabel;
+
     setAttendance((prevAttendance) => {
       let currentList = [...prevAttendance];
       const recordsToSync: AttendanceRecord[] = [];
@@ -884,6 +1229,10 @@ export default function App() {
             ...existing,
             ...item,
             id: existing.id,
+            recordedBy: existing.recordedBy || creatorLabel,
+            recordedByRole: existing.recordedByRole || currentUser?.role || 'tutor',
+            lastModifiedBy: modifierLabel,
+            lastModifiedAt: new Date().toISOString(),
           };
           currentList = currentList.map((a) => (a.id === existing.id ? updatedRecord : a));
           recordsToSync.push(updatedRecord);
@@ -892,6 +1241,8 @@ export default function App() {
             ...item,
             id: `att-${Date.now()}-${i}`,
             createdAt: new Date().toISOString(),
+            recordedBy: creatorLabel,
+            recordedByRole: currentUser?.role || 'tutor',
           };
           currentList = [newRecord, ...currentList];
           recordsToSync.push(newRecord);
@@ -914,18 +1265,23 @@ export default function App() {
   ) => {
     const todayStr = getTodayDateString();
     const effectiveTutor = tutorName || student.tutorName || settings.ownerName || 'Nanik Susilowati, M.Pd';
+    const selfCreatorLabel = `${student.name} (Mandiri Portal)`;
 
     setAttendance((prevAttendance) => {
       const existing = findMatchingAttendanceRecord(prevAttendance, student, todayStr);
 
       if (existing) {
-        const updatedRecord = {
+        const updatedRecord: AttendanceRecord = {
           ...existing,
           time,
           status: 'Hadir' as const,
           topic: topic || existing.topic,
           tutorNotes: notes ? `[Siswa]: ${notes}` : existing.tutorNotes,
           tutorName: effectiveTutor,
+          recordedBy: existing.recordedBy || selfCreatorLabel,
+          recordedByRole: existing.recordedByRole || 'siswa',
+          lastModifiedBy: selfCreatorLabel,
+          lastModifiedAt: new Date().toISOString(),
         };
         const updated = prevAttendance.map((a) => (a.id === existing.id ? updatedRecord : a));
         saveAttendance(updated);
@@ -946,6 +1302,8 @@ export default function App() {
           tutorNotes: notes ? `[Absen Mandiri Siswa]: ${notes}` : 'Hadir mandiri melalui portal siswa',
           tutorName: effectiveTutor,
           createdAt: new Date().toISOString(),
+          recordedBy: selfCreatorLabel,
+          recordedByRole: 'siswa',
         };
         const updated = [newRecord, ...prevAttendance];
         saveAttendance(updated);
@@ -965,6 +1323,10 @@ export default function App() {
     const todayStr = getTodayDateString();
     const effectiveTutor = currentUser?.name || student.tutorName || settings.ownerName || 'Nanik Susilowati, M.Pd';
     const cleanTime = time || `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+    const qrCreatorLabel = currentUser
+      ? `${currentUser.name} (Scan QR)`
+      : `${student.name} (Scan QR)`;
+    const qrCreatorRole = currentUser?.role || 'siswa';
 
     setAttendance((prevAttendance) => {
       const existing = findMatchingAttendanceRecord(prevAttendance, student, todayStr);
@@ -977,6 +1339,10 @@ export default function App() {
           topic: topic || existing.topic,
           tutorNotes: notes ? `[Scan QR]: ${notes}` : (existing.tutorNotes || 'Presensi via Scan QR Pelajar'),
           tutorName: effectiveTutor,
+          recordedBy: existing.recordedBy || qrCreatorLabel,
+          recordedByRole: existing.recordedByRole || qrCreatorRole,
+          lastModifiedBy: qrCreatorLabel,
+          lastModifiedAt: new Date().toISOString(),
         };
         const updated = prevAttendance.map((a) => (a.id === existing.id ? updatedRecord : a));
         saveAttendance(updated);
@@ -997,6 +1363,8 @@ export default function App() {
           tutorNotes: notes ? `[Scan QR Presensi]: ${notes}` : 'Presensi via Scan QR Pelajar',
           tutorName: effectiveTutor,
           createdAt: new Date().toISOString(),
+          recordedBy: qrCreatorLabel,
+          recordedByRole: qrCreatorRole,
         };
         const updated = [newRecord, ...prevAttendance];
         saveAttendance(updated);
@@ -1038,7 +1406,33 @@ export default function App() {
         saveAttendance(updated);
         deleteDocFromFirestore(COLLECTIONS.ATTENDANCE, id).catch(console.error);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
-        showToast(`Log presensi "${itemName}" berhasil dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-att-del-${target.id}-${Date.now()}`,
+            title: `Hapus Presensi: ${target.studentName} (${target.date})`,
+            category: 'attendance',
+            timestamp: Date.now(),
+            undo: async () => {
+              setAttendance((prev) => {
+                const restored = [target, ...prev];
+                saveAttendance(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.ATTENDANCE, target.id, target);
+            },
+            redo: async () => {
+              setAttendance((prev) => {
+                const reverted = prev.filter((a) => a.id !== target.id);
+                saveAttendance(reverted);
+                return reverted;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.ATTENDANCE, target.id);
+            },
+          });
+        } else {
+          showToast(`Log presensi "${itemName}" berhasil dihapus.`);
+        }
       },
     });
   };
@@ -1059,12 +1453,34 @@ export default function App() {
     const normalizedReceiptNumber = normalizeIncomeReceiptNumber(rawNum, dateStr);
 
     if (data.id) {
+      const prevIncome = incomes.find((i) => i.id === data.id);
       const updated = incomes.map((inc) => (inc.id === data.id ? { ...inc, ...data, category: normalizedCategory as any, receiptNumber: normalizedReceiptNumber } : inc));
       setIncomes(updated);
       saveIncomes(updated);
       const targetObj = updated.find((i) => i.id === data.id)!;
       syncDocToFirestore(COLLECTIONS.INCOMES, data.id, targetObj).catch(console.error);
-      showToast(`Pencatatan kas masuk "${data.studentName || data.sourceName}" berhasil diperbarui.`);
+
+      if (prevIncome) {
+        pushUndoAction({
+          id: `undo-inc-edit-${data.id}-${Date.now()}`,
+          title: `Ubah Kas Masuk: ${prevIncome.studentName || prevIncome.sourceName} (${formatRupiah(data.amount)})`,
+          category: 'income',
+          timestamp: Date.now(),
+          undo: async () => {
+            setIncomes((prev) => {
+              const reverted = prev.map((i) => (i.id === prevIncome.id ? prevIncome : i));
+              saveIncomes(reverted);
+              return reverted;
+            });
+            await syncDocToFirestore(COLLECTIONS.INCOMES, prevIncome.id, prevIncome);
+          },
+          redo: async () => {
+            handleSaveIncome(data);
+          },
+        });
+      } else {
+        showToast(`Pencatatan kas masuk "${data.studentName || data.sourceName}" berhasil diperbarui.`);
+      }
     } else {
       const newIncome: IncomeRecord = {
         ...data,
@@ -1097,7 +1513,45 @@ export default function App() {
         }
       }
 
-      showToast(`Penerimaan kas "${data.studentName || data.sourceName}" sebesar Rp ${data.amount.toLocaleString('id-ID')} berhasil dicatat.`);
+      pushUndoAction({
+        id: `undo-inc-add-${newIncome.id}`,
+        title: `Kas Masuk: ${newIncome.studentName || newIncome.sourceName} (${formatRupiah(newIncome.amount)})`,
+        category: 'income',
+        timestamp: Date.now(),
+        undo: async () => {
+          setIncomes((prev) => {
+            const reverted = prev.filter((i) => i.id !== newIncome.id);
+            saveIncomes(reverted);
+            return reverted;
+          });
+          await deleteDocFromFirestore(COLLECTIONS.INCOMES, newIncome.id);
+          if (data.incomeCategory === 'session_pack' && data.studentId && data.sessionsCount) {
+            const targetStudent = students.find((s) => s.id === data.studentId);
+            if (targetStudent) {
+              const revertedStudent: Student = {
+                ...targetStudent,
+                sessionQuota: Math.max(0, (targetStudent.sessionQuota || 0) - data.sessionsCount),
+                remainingSessions: Math.max(0, (targetStudent.remainingSessions || 0) - data.sessionsCount),
+              };
+              setStudents((prev) => {
+                const list = prev.map((s) => (s.id === targetStudent.id ? revertedStudent : s));
+                saveStudents(list);
+                return list;
+              });
+              await syncDocToFirestore(COLLECTIONS.STUDENTS, revertedStudent.id, revertedStudent);
+            }
+          }
+        },
+        redo: async () => {
+          setIncomes((prev) => {
+            const restored = [newIncome, ...prev];
+            saveIncomes(restored);
+            return restored;
+          });
+          await syncDocToFirestore(COLLECTIONS.INCOMES, newIncome.id, newIncome);
+        },
+      });
+
       setReceiptIncome(newIncome);
     }
   };
@@ -1154,7 +1608,28 @@ export default function App() {
     saveIncomes(updated);
     syncDocToFirestore(COLLECTIONS.INCOMES, newIncome.id, newIncome).catch(console.error);
 
-    showToast(`Pembayaran les "${paymentData.student.name}" sebesar ${formatRupiah(paymentData.amount)} berhasil dicatat ke Kas Masuk.`);
+    pushUndoAction({
+      id: `undo-inc-pay-${newIncome.id}`,
+      title: `Pembayaran Les: ${paymentData.student.name} (${formatRupiah(paymentData.amount)})`,
+      category: 'income',
+      timestamp: Date.now(),
+      undo: async () => {
+        setIncomes((prev) => {
+          const reverted = prev.filter((i) => i.id !== newIncome.id);
+          saveIncomes(reverted);
+          return reverted;
+        });
+        await deleteDocFromFirestore(COLLECTIONS.INCOMES, newIncome.id);
+      },
+      redo: async () => {
+        setIncomes((prev) => {
+          const restored = [newIncome, ...prev];
+          saveIncomes(restored);
+          return restored;
+        });
+        await syncDocToFirestore(COLLECTIONS.INCOMES, newIncome.id, newIncome);
+      },
+    });
 
     if (paymentData.autoOpenReceipt) {
       setReceiptIncome(newIncome);
@@ -1177,7 +1652,33 @@ export default function App() {
         saveIncomes(updated);
         deleteDocFromFirestore(COLLECTIONS.INCOMES, id).catch(console.error);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
-        showToast(`Catatan kas masuk SPP telah dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-inc-del-${target.id}-${Date.now()}`,
+            title: `Hapus Kas Masuk: ${target.studentName || target.sourceName} (${formatRupiah(target.amount)})`,
+            category: 'income',
+            timestamp: Date.now(),
+            undo: async () => {
+              setIncomes((prev) => {
+                const restored = [target, ...prev];
+                saveIncomes(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.INCOMES, target.id, target);
+            },
+            redo: async () => {
+              setIncomes((prev) => {
+                const reverted = prev.filter((i) => i.id !== target.id);
+                saveIncomes(reverted);
+                return reverted;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.INCOMES, target.id);
+            },
+          });
+        } else {
+          showToast(`Catatan kas masuk SPP telah dihapus.`);
+        }
       },
     });
   };
@@ -1198,12 +1699,34 @@ export default function App() {
     const normalizedRef = normalizeExpenseRefNumber(rawRef, dateStr);
 
     if (data.id) {
+      const prevExpense = expenses.find((e) => e.id === data.id);
       const updated = expenses.map((exp) => (exp.id === data.id ? { ...exp, ...data, category: normalizedCategory as any, receiptRef: normalizedRef } : exp));
       setExpenses(updated);
       saveExpenses(updated);
       const targetObj = updated.find((e) => e.id === data.id)!;
       syncDocToFirestore(COLLECTIONS.EXPENSES, data.id, targetObj).catch(console.error);
-      showToast(`Biaya pengeluaran "${data.title || data.description}" berhasil diperbarui.`);
+
+      if (prevExpense) {
+        pushUndoAction({
+          id: `undo-exp-edit-${data.id}-${Date.now()}`,
+          title: `Ubah Pengeluaran: ${prevExpense.title || prevExpense.description} (${formatRupiah(data.amount)})`,
+          category: 'expense',
+          timestamp: Date.now(),
+          undo: async () => {
+            setExpenses((prev) => {
+              const reverted = prev.map((e) => (e.id === prevExpense.id ? prevExpense : e));
+              saveExpenses(reverted);
+              return reverted;
+            });
+            await syncDocToFirestore(COLLECTIONS.EXPENSES, prevExpense.id, prevExpense);
+          },
+          redo: async () => {
+            handleSaveExpense(data);
+          },
+        });
+      } else {
+        showToast(`Biaya pengeluaran "${data.title || data.description}" berhasil diperbarui.`);
+      }
     } else {
       const newExpense: ExpenseRecord = {
         ...data,
@@ -1216,7 +1739,29 @@ export default function App() {
       setExpenses(updated);
       saveExpenses(updated);
       syncDocToFirestore(COLLECTIONS.EXPENSES, newExpense.id, newExpense).catch(console.error);
-      showToast(`Pengeluaran "${data.title || data.description}" sebesar Rp ${data.amount.toLocaleString('id-ID')} dicatat.`);
+
+      pushUndoAction({
+        id: `undo-exp-add-${newExpense.id}`,
+        title: `Pengeluaran: ${newExpense.title || newExpense.description} (${formatRupiah(newExpense.amount)})`,
+        category: 'expense',
+        timestamp: Date.now(),
+        undo: async () => {
+          setExpenses((prev) => {
+            const reverted = prev.filter((e) => e.id !== newExpense.id);
+            saveExpenses(reverted);
+            return reverted;
+          });
+          await deleteDocFromFirestore(COLLECTIONS.EXPENSES, newExpense.id);
+        },
+        redo: async () => {
+          setExpenses((prev) => {
+            const restored = [newExpense, ...prev];
+            saveExpenses(restored);
+            return restored;
+          });
+          await syncDocToFirestore(COLLECTIONS.EXPENSES, newExpense.id, newExpense);
+        },
+      });
     }
   };
 
@@ -1236,7 +1781,33 @@ export default function App() {
         saveExpenses(updated);
         deleteDocFromFirestore(COLLECTIONS.EXPENSES, id).catch(console.error);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
-        showToast(`Biaya pengeluaran telah dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-exp-del-${target.id}-${Date.now()}`,
+            title: `Hapus Pengeluaran: ${target.title || target.description} (${formatRupiah(target.amount)})`,
+            category: 'expense',
+            timestamp: Date.now(),
+            undo: async () => {
+              setExpenses((prev) => {
+                const restored = [target, ...prev];
+                saveExpenses(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.EXPENSES, target.id, target);
+            },
+            redo: async () => {
+              setExpenses((prev) => {
+                const reverted = prev.filter((e) => e.id !== target.id);
+                saveExpenses(reverted);
+                return reverted;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.EXPENSES, target.id);
+            },
+          });
+        } else {
+          showToast(`Biaya pengeluaran telah dihapus.`);
+        }
       },
     });
   };
@@ -1271,6 +1842,12 @@ export default function App() {
     }
 
     if (accountData.id) {
+      const existingUser = users.find((u) => u.id === accountData.id);
+      const prevUsers = [...users];
+      const prevAttendance = [...attendance];
+      const prevStudents = [...students];
+      const prevExpenses = [...expenses];
+
       const rawUpdated = users.map((u) =>
         u.id === accountData.id ? { ...u, ...accountData, username: cleanUsername, name: cleanName } : u
       );
@@ -1304,7 +1881,34 @@ export default function App() {
         replaceAllInCollection(COLLECTIONS.EXPENSES, syncRes.updatedExpenses).catch(console.error);
       }
 
-      showToast(`Akun pengguna "${cleanName}" (@${cleanUsername}) berhasil diperbarui.`);
+      if (existingUser) {
+        pushUndoAction({
+          id: `undo-user-edit-${existingUser.id}-${Date.now()}`,
+          title: `Ubah Akun: @${existingUser.username} (${existingUser.name})`,
+          category: 'user',
+          timestamp: Date.now(),
+          undo: async () => {
+            setUsers(prevUsers);
+            saveUsers(prevUsers);
+            setAttendance(prevAttendance);
+            saveAttendance(prevAttendance);
+            setStudents(prevStudents);
+            saveStudents(prevStudents);
+            setExpenses(prevExpenses);
+            saveExpenses(prevExpenses);
+            await syncDocToFirestore(COLLECTIONS.USERS, existingUser.id, existingUser);
+            if (currentUser && currentUser.id === existingUser.id) {
+              setCurrentUser(existingUser);
+              localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(existingUser));
+            }
+          },
+          redo: async () => {
+            handleSaveUser(accountData);
+          },
+        });
+      } else {
+        showToast(`Akun pengguna "${cleanName}" (@${cleanUsername}) berhasil diperbarui.`);
+      }
     } else {
       const newAccount: UserAccount = {
         ...accountData,
@@ -1333,7 +1937,28 @@ export default function App() {
         }
       }
 
-      showToast(`Akun baru "${cleanName}" (${accountData.role.toUpperCase()}) berhasil dibuat!`);
+      pushUndoAction({
+        id: `undo-user-add-${newAccount.id}`,
+        title: `Buat Akun: @${newAccount.username} (${newAccount.name})`,
+        category: 'user',
+        timestamp: Date.now(),
+        undo: async () => {
+          setUsers((prev) => {
+            const reverted = prev.filter((u) => u.id !== newAccount.id);
+            saveUsers(reverted);
+            return reverted;
+          });
+          await deleteDocFromFirestore(COLLECTIONS.USERS, newAccount.id);
+        },
+        redo: async () => {
+          setUsers((prev) => {
+            const restored = sortUsersByRole([newAccount, ...prev]);
+            saveUsers(restored);
+            return restored;
+          });
+          await syncDocToFirestore(COLLECTIONS.USERS, newAccount.id, newAccount);
+        },
+      });
     }
   };
 
@@ -1388,7 +2013,33 @@ export default function App() {
         saveUsers(updated);
         deleteDocFromFirestore(COLLECTIONS.USERS, userId).catch(console.error);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
-        showToast(`Akun @${target.username} berhasil dihapus.`);
+
+        if (target) {
+          pushUndoAction({
+            id: `undo-user-del-${target.id}-${Date.now()}`,
+            title: `Hapus Akun: @${target.username} (${target.name})`,
+            category: 'user',
+            timestamp: Date.now(),
+            undo: async () => {
+              setUsers((prev) => {
+                const restored = sortUsersByRole([target, ...prev]);
+                saveUsers(restored);
+                return restored;
+              });
+              await syncDocToFirestore(COLLECTIONS.USERS, target.id, target);
+            },
+            redo: async () => {
+              setUsers((prev) => {
+                const reverted = prev.filter((u) => u.id !== target.id);
+                saveUsers(reverted);
+                return reverted;
+              });
+              await deleteDocFromFirestore(COLLECTIONS.USERS, target.id);
+            },
+          });
+        } else {
+          showToast(`Akun @${target.username} berhasil dihapus.`);
+        }
       },
     });
   };
@@ -1420,9 +2071,28 @@ export default function App() {
 
   // --- Handlers: Settings & Backup ---
   const handleSaveSettings = (newSettings: BimbelSettings) => {
+    const prevSettings = { ...settings };
     setSettings(newSettings);
     saveSettings(newSettings);
     syncDocToFirestore(COLLECTIONS.SETTINGS, 'default', { id: 'default', ...newSettings }).catch(console.error);
+
+    pushUndoAction({
+      id: `undo-settings-${Date.now()}`,
+      title: 'Ubah Pengaturan Bimbel',
+      category: 'settings',
+      timestamp: Date.now(),
+      undo: async () => {
+        setSettings(prevSettings);
+        saveSettings(prevSettings);
+        await syncDocToFirestore(COLLECTIONS.SETTINGS, 'default', { id: 'default', ...prevSettings });
+      },
+      redo: async () => {
+        setSettings(newSettings);
+        saveSettings(newSettings);
+        await syncDocToFirestore(COLLECTIONS.SETTINGS, 'default', { id: 'default', ...newSettings });
+      },
+    });
+
     showToast('Pengaturan sistem & profil bimbel berhasil disimpan.');
   };
 
@@ -1659,15 +2329,12 @@ export default function App() {
 
   return (
     <div className="h-screen bg-slate-100 flex flex-col antialiased text-slate-900 selection:bg-indigo-500 selection:text-white overflow-hidden print:h-auto print:overflow-visible">
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>{toastMessage}</span>
-          </div>
-        </div>
-      )}
+      {/* Toast Notification Banner with Undo Support */}
+      <UndoToast
+        toast={activeToast}
+        onUndo={(item) => performUndo(item)}
+        onClose={() => setActiveToast(null)}
+      />
 
       {/* 1. Global Navigation Bar */}
       <Navbar
@@ -1677,11 +2344,17 @@ export default function App() {
         onSwitchUser={handleSwitchUser}
         onLogout={handleLogout}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        onToggleDesktopSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isSidebarCollapsed={isSidebarCollapsed}
         todayAttendanceCount={todayAttendanceCount}
         totalStudentsCount={students.length}
         onOpenChangePasswordModal={() => handleOpenChangePasswordModal(currentUser)}
         onOpenPublicPortal={() => setShowPublicPortal(true)}
         isCloudConnected={isCloudConnected}
+        undoStack={undoStack}
+        redoStack={redoStack}
+        onUndo={() => performUndo()}
+        onRedo={() => performRedo()}
       />
 
       {/* 2. Main Content Layout with Responsive Sidebar */}
@@ -1694,6 +2367,8 @@ export default function App() {
           settings={settings}
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           todayAttendanceCount={todayAttendanceCount}
           totalStudentsCount={students.length}
           prospectiveStudentsCount={
@@ -1934,6 +2609,7 @@ export default function App() {
         students={students}
         initialData={editingAttendance}
         currentUserName={currentUser.name}
+        userRole={currentUser.role}
         users={users}
         attendance={attendance}
       />
