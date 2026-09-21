@@ -23,6 +23,7 @@ interface NavbarProps {
   users?: UserAccount[];
   settings?: BimbelSettings;
   isCloudConnected?: boolean;
+  isQuotaExceeded?: boolean;
   onSwitchUser?: (user: UserSession) => void;
   onLogout: () => void;
   onResetData?: () => void;
@@ -43,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   settings,
   isCloudConnected = true,
+  isQuotaExceeded = false,
   onLogout,
   onToggleMobileSidebar,
   onToggleDesktopSidebar,
@@ -127,6 +129,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const topbarStyle = settings?.topbarStyle || 'theme-tint';
   const isLight = topbarStyle === 'light-clean';
 
+  const logoBoxSizeClass =
+    settings?.headerLogoSize === 'compact'
+      ? 'w-8 h-8 sm:w-9 sm:h-9 text-xs sm:text-base rounded-lg'
+      : settings?.headerLogoSize === 'large'
+      ? 'w-9 h-9 sm:w-11 sm:h-11 text-sm sm:text-xl rounded-2xl'
+      : 'w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-lg rounded-xl'; // normal default
+
   const getHeaderStyle = () => {
     switch (topbarStyle) {
       case 'theme-solid':
@@ -181,10 +190,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       style={getHeaderStyle()}
     >
       <div className="h-0.5 w-full shrink-0" style={{ backgroundColor: theme.primary }} />
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
-          {/* Left: Mobile Toggle & Brand */}
-          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
+      <div className="w-full px-3 sm:px-5 lg:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-3 sm:gap-4">
+          {/* Left: Mobile Toggle & Brand Identity */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-1">
             <button
               onClick={() => {
                 if (window.innerWidth < 1024) {
@@ -195,16 +204,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onToggleMobileSidebar();
                 }
               }}
-              className={`p-1.5 sm:p-2 rounded-xl ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/10'} focus:outline-none transition cursor-pointer shrink-0 active:scale-95`}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-white/10'} focus:outline-none transition cursor-pointer shrink-0 active:scale-95`}
               title={isSidebarCollapsed ? 'Buka Menu Samping' : 'Ciutkan / Tutup Menu Samping'}
               aria-label="Buka / Tutup Menu Samping"
             >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Menu className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div 
-                className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-sm sm:text-2xl text-white shadow-lg shrink-0 select-none overflow-hidden p-0.5 transition-all duration-300"
+                className={`${logoBoxSizeClass} flex items-center justify-center font-black text-white shadow-md shrink-0 select-none overflow-hidden p-0.5 transition-all duration-300`}
                 style={{
                   background: topbarStyle === 'theme-solid' 
                     ? theme.dark 
@@ -214,14 +223,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <BimbelLogo settings={settings} />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h1 className={`text-xs sm:text-base md:text-lg font-black tracking-tight font-heading ${isLight ? 'text-slate-900' : 'text-white'} truncate max-w-[105px] xs:max-w-[150px] sm:max-w-xs md:max-w-md`}>
+              <div className="flex flex-col justify-center min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h1 className={`text-sm sm:text-base md:text-lg font-black tracking-tight font-heading ${isLight ? 'text-slate-900' : 'text-white'} truncate leading-tight`}>
                     {bimbelName}
                   </h1>
                   {appVersionBadge && (
                     <span 
-                      className="hidden md:inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0"
+                      className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 leading-none whitespace-nowrap"
                       style={{
                         backgroundColor: isLight ? `${theme.primary}15` : `${theme.primary}25`,
                         color: isLight ? theme.dark : '#ffffff',
@@ -233,7 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </div>
                 {tagline && (
-                  <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-amber-300/90'} tracking-wide hidden lg:block truncate max-w-md`}>
+                  <p className={`text-[10.5px] font-medium ${isLight ? 'text-slate-500' : 'text-amber-300/90'} tracking-wide hidden lg:block truncate max-w-[240px] xl:max-w-sm leading-tight mt-0.5`}>
                     “{tagline}”
                   </p>
                 )}
@@ -241,8 +250,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Right: Actions, Live Clock, User Profile, & Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Right: Actions, Live Clock, User Profile, & Logout (Harmonized h-9 heights, ml-auto shrink-0) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
             {/* Undo / Redo Global Controls */}
             {onUndo && (
               <UndoRedoControls
@@ -254,17 +263,51 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             )}
 
-            {/* Cloud Realtime Status (Hidden on Mobile) */}
+            {/* Cloud Realtime / Quota Status */}
             <div
-              title={isCloudConnected ? 'Cloud Firebase Firestore Terhubung Realtime' : 'Mode Offline / Local Storage'}
-              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl ${isLight ? 'bg-slate-100 border border-slate-200 text-slate-700' : 'bg-slate-800/80 border border-slate-700/60 text-slate-300'} text-[11px] font-medium`}
+              title={
+                isQuotaExceeded
+                  ? 'Kuota gratis harian Firestore tercapai (Resource Exhausted). Aplikasi aktif normal menggunakan LocalStorage aman di browser, dan kuota akan otomatis reset besok.'
+                  : isCloudConnected
+                  ? 'Cloud Firebase Firestore Terhubung Realtime'
+                  : 'Mode Offline / Local Storage'
+              }
+              className={`hidden md:flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-xl ${
+                isQuotaExceeded
+                  ? isLight
+                    ? 'bg-amber-50 border border-amber-300/80 text-amber-800'
+                    : 'bg-amber-950/40 border border-amber-700/60 text-amber-300'
+                  : isLight
+                  ? 'bg-slate-100 border border-slate-200 text-slate-700'
+                  : 'bg-slate-800/80 border border-slate-700/60 text-slate-300'
+              } text-[11px] font-medium`}
             >
-              <span className={`w-2 h-2 rounded-full ${isCloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
-              <span className={isLight ? 'text-slate-700 font-medium' : 'text-slate-300 font-medium'}>{isCloudConnected ? 'Cloud Sync' : 'Local Mode'}</span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isQuotaExceeded
+                    ? 'bg-amber-500'
+                    : isCloudConnected
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-slate-400'
+                }`}
+              />
+              <span
+                className={`hidden xl:inline ${
+                  isQuotaExceeded
+                    ? isLight
+                      ? 'text-amber-800 font-semibold'
+                      : 'text-amber-300 font-semibold'
+                    : isLight
+                    ? 'text-slate-700 font-medium'
+                    : 'text-slate-300 font-medium'
+                }`}
+              >
+                {isQuotaExceeded ? 'Mode Lokal (Kuota Cloud Penuh)' : isCloudConnected ? 'Cloud Sync' : 'Local Mode'}
+              </span>
             </div>
 
-            {/* Live Clock (Hidden on Mobile/Tablet) */}
-            <div className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${isLight ? 'bg-slate-100 border border-slate-200 text-slate-700' : 'bg-slate-800/80 border border-slate-700/60 text-slate-300'} text-xs font-mono`}>
+            {/* Live Clock (Wide Desktop only) */}
+            <div className={`hidden 2xl:flex items-center gap-1.5 h-9 px-3 rounded-xl ${isLight ? 'bg-slate-100 border border-slate-200 text-slate-700' : 'bg-slate-800/80 border border-slate-700/60 text-slate-300'} text-xs font-mono`}>
               <Clock className={`w-3.5 h-3.5 ${isLight ? 'text-amber-600' : 'text-amber-400'}`} />
               <span>{timeStr}</span>
             </div>
@@ -274,7 +317,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenPublicPortal}
                 title="Buka Halaman Portal Publik (PPDB & Cek Mandiri)"
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 hover:brightness-105"
+                className="hidden lg:flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 hover:brightness-105"
                 style={{
                   backgroundColor: isLight 
                     ? '#f1f5f9' 
@@ -294,26 +337,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Change Password Button (Desktop/Tablet) */}
-            {onOpenChangePasswordModal && (
-              <button
-                onClick={onOpenChangePasswordModal}
-                title={`Ganti Kata Sandi (${currentUser?.name || 'Pengguna'})`}
-                className={`hidden sm:flex p-2 rounded-xl ${isLight ? 'text-slate-600 hover:text-amber-600 hover:bg-slate-100' : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800'} transition cursor-pointer shrink-0`}
-              >
-                <KeyRound className="w-4 h-4" />
-              </button>
-            )}
-
             {/* User Profile Card & Interactive Mobile Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`flex items-center gap-1.5 sm:gap-2.5 p-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl ${isLight ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-900' : 'bg-slate-800/90 hover:bg-slate-800 border-slate-700/80 text-white'} border shadow-xs cursor-pointer transition active:scale-95`}
+                className={`flex items-center gap-1.5 sm:gap-2 h-9 px-2 sm:px-2.5 rounded-xl ${isLight ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-900' : 'bg-slate-800/90 hover:bg-slate-800 border-slate-700/80 text-white'} border shadow-xs cursor-pointer transition active:scale-95`}
                 title={`Profil: ${currentUser.name} (${badge.label})`}
               >
-                <div className="relative">
+                <div className="relative flex items-center">
                   <UserAvatar
                     avatar={currentUser.avatar}
                     name={currentUser.name}
@@ -325,8 +357,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className={`sm:hidden absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isLight ? 'border-white' : 'border-slate-900'} ${badge.dotColor}`} />
                 </div>
 
-                <div className="hidden md:block text-left">
-                  <p className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate max-w-[120px] leading-tight`}>
+                <div className="hidden lg:block text-left">
+                  <p className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate max-w-[110px] xl:max-w-[140px] leading-tight`}>
                     {currentUser.name}
                   </p>
                   <p className={`text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono leading-none mt-0.5`}>
@@ -334,9 +366,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </p>
                 </div>
 
-                {/* Role badge pill on sm: and up */}
+                {/* Role badge pill on xl: and up */}
                 <span
-                  className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 sm:py-1 rounded-lg sm:rounded-xl shadow-xs ${badge.bg}`}
+                  className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shadow-xs ${badge.bg}`}
                 >
                   {badge.icon}
                   <span className="tracking-wider">{badge.shortLabel}</span>
@@ -374,8 +406,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span>{badge.label}</span>
                       </span>
                       <span className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isCloudConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                        {isCloudConnected ? 'Online Sync' : 'Local'}
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isQuotaExceeded ? 'bg-amber-500' : isCloudConnected ? 'bg-emerald-500' : 'bg-slate-400'
+                          }`}
+                        />
+                        {isQuotaExceeded ? 'Local (Cloud Full)' : isCloudConnected ? 'Online Sync' : 'Local'}
                       </span>
                     </div>
                   </div>

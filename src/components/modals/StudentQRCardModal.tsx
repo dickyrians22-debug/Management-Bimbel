@@ -275,7 +275,7 @@ export const StudentQRCardModal: React.FC<StudentQRCardModalProps> = ({
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-              <span>Kartu Resmi Presensi Digital Bimbel Sigma</span>
+              <span>Kartu Resmi Presensi Digital {brandTitle}</span>
             </div>
           </div>
 

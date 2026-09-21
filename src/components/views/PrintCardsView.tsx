@@ -155,7 +155,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
   // --- CUSTOM EVALUATION / REKOMENDASI PENGAJAR (OWNER & TUTOR ONLY) ---
   const [customEvaluations, setCustomEvaluations] = useState<Record<string, string>>(() => {
     try {
-      const raw = localStorage.getItem('sigma_monthly_evaluations');
+      const raw = localStorage.getItem('bimbel_monthly_evaluations') || localStorage.getItem('sigma_monthly_evaluations');
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -605,7 +605,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
     };
     setCustomEvaluations(updated);
     try {
-      localStorage.setItem('sigma_monthly_evaluations', JSON.stringify(updated));
+      localStorage.setItem('bimbel_monthly_evaluations', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to save evaluation', e);
     }
@@ -620,7 +620,7 @@ export const PrintCardsView: React.FC<PrintCardsViewProps> = ({
     delete updated[currentEvalKey];
     setCustomEvaluations(updated);
     try {
-      localStorage.setItem('sigma_monthly_evaluations', JSON.stringify(updated));
+      localStorage.setItem('bimbel_monthly_evaluations', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to reset evaluation', e);
     }

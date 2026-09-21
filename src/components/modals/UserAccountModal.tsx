@@ -54,7 +54,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
   const [role, setRole] = useState<UserRole>('tutor');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('sigma123');
+  const [password, setPassword] = useState('123456');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [specialty, setSpecialty] = useState('');
@@ -73,7 +73,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
       setRole(initialData.role);
       setName(initialData.name || '');
       setUsername(initialData.username || '');
-      setPassword(initialData.password || 'sigma123');
+      setPassword(initialData.password || '123456');
       setEmail(initialData.email || '');
       setPhone(initialData.phone || '');
       setSpecialty(initialData.specialty || '');
@@ -86,10 +86,10 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
       setRole('tutor');
       setName('');
       setUsername('');
-      setPassword('sigma123');
+      setPassword('123456');
       setEmail('');
       setPhone('');
-      setSpecialty('Tutor Pengajar Bimbel Sigma');
+      setSpecialty('Tutor Pengajar Bimbel');
       setCode('');
       setLinkedStudentId('');
       setAvatar(''); // Default inisial (0 KB)
@@ -124,7 +124,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
         setUsername((selected.name || '').toLowerCase().replace(/\s+/g, '').slice(0, 10));
       }
       if (!email && selected.code) {
-        setEmail(`${(selected.code || '').toLowerCase()}@siswa.bimbelsigma.id`);
+        setEmail(`${(selected.code || '').toLowerCase()}@siswa.bimbel.id`);
       }
     }
   };
@@ -195,7 +195,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
       role,
       name: cleanName,
       username: cleanUsername,
-      password: password.trim() || 'sigma123',
+      password: password.trim() || '123456',
       email: email.trim(),
       phone: phone.trim(),
       specialty: specialty.trim(),
@@ -365,7 +365,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="sigma123"
+                  placeholder="123456"
                   required
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 font-mono"
                 />
@@ -382,7 +382,7 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@bimbelsigma.id"
+                  placeholder="email@bimbel.id"
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

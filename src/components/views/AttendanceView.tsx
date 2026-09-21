@@ -22,7 +22,7 @@ import {
   QrCode,
   ShieldCheck,
 } from 'lucide-react';
-import { AttendanceRecord, Student, UserRole, AttendanceStatus, UserAccount } from '../../types';
+import { AttendanceRecord, Student, UserRole, AttendanceStatus, UserAccount, BimbelSettings } from '../../types';
 import { formatDateIndo, getTodayDateString, resolveTutorName, findAttendanceDuplicates } from '../../utils/storage';
 import { exportToExcel, formatAttendanceForExcel } from '../../utils/exportUtils';
 
@@ -32,6 +32,7 @@ interface AttendanceViewProps {
   users?: UserAccount[];
   userRole: UserRole;
   currentUserName: string;
+  settings?: BimbelSettings;
   onOpenAttendanceModal: (editRecord?: AttendanceRecord) => void;
   onOpenBatchAttendanceModal: () => void;
   onDeleteAttendance: (id: string, name: string) => void;
@@ -45,6 +46,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   users = [],
   userRole,
   currentUserName,
+  settings,
   onOpenAttendanceModal,
   onOpenBatchAttendanceModal,
   onDeleteAttendance,
@@ -124,7 +126,8 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       };
     });
     const formattedData = formatAttendanceForExcel(enrichedAttendance);
-    const fileName = filterDate ? `Rekap_Presensi_Bimbel_Sigma_${filterDate}` : 'Rekap_Presensi_Bimbel_Sigma_Lengkap';
+    const safeBimbel = (settings?.bimbelName || 'Bimbel').replace(/\s+/g, '_');
+    const fileName = filterDate ? `Rekap_Presensi_${safeBimbel}_${filterDate}` : `Rekap_Presensi_${safeBimbel}_Lengkap`;
     exportToExcel(formattedData, fileName, 'Presensi');
   };
 

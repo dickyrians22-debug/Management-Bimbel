@@ -48,12 +48,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   if (!isOpen) return null;
 
+  const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
+  const safeBimbelName = bimbelName.replace(/\s+/g, '_');
+  const bimbelTagline = settings?.tagline || 'Belajar Sampai Paham, Bukan Sekadar Hafal';
+  const bimbelAddress = settings?.address || 'Karang Muso 06/02 Bicak, Todanan, Blora, Jawa Tengah';
+  const bimbelPhone = settings?.phone || '0852-8232-4337';
+  const ownerName = settings?.ownerName || 'Nanik Susilowati, M.Pd';
+  const theme = getDocumentThemeStyles(settings?.accentColor);
+
   const handlePrint = () => {
     if (receiptCardRef.current) {
       const modeSuffix = isMonochrome ? ' (B&W)' : '';
       printElement(
         receiptCardRef.current,
-        `Kwitansi_${income.receiptNumber || 'Bimbel_Sigma'}${modeSuffix}`,
+        `Kwitansi_${income.receiptNumber || safeBimbelName}${modeSuffix}`,
         { pageSize: 'A6 portrait', margin: '4mm', maxWidth: '105mm' }
       );
     } else {
@@ -61,19 +69,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     }
   };
 
-  const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
-  const bimbelTagline = settings?.tagline || 'Belajar Sampai Paham, Bukan Sekadar Hafal';
-  const bimbelAddress = settings?.address || 'Karang Muso 06/02 Bicak, Todanan, Blora, Jawa Tengah';
-  const bimbelPhone = settings?.phone || '0852-8232-4337';
-  const ownerName = settings?.ownerName || 'Nanik Susilowati, M.Pd';
-  const theme = getDocumentThemeStyles(settings?.accentColor);
-
   const handleDownloadImage = async () => {
     if (!receiptCardRef.current) return;
     setIsExportingImage(true);
     try {
       const modeSuffix = isMonochrome ? '_BW' : '';
-      const fileName = `Kwitansi_${income.receiptNumber || 'Bimbel_Sigma'}${modeSuffix}`;
+      const fileName = `Kwitansi_${income.receiptNumber || safeBimbelName}${modeSuffix}`;
       await exportElementToPng(receiptCardRef.current, fileName, {
         pixelRatio: 2.5,
         backgroundColor: '#ffffff',

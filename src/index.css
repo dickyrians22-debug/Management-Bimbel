@@ -45,7 +45,7 @@
   }
 }
 
-/* Custom Print Rules for Bimbel Sigma (Mode A 1-Siswa & Mode B Kelas Kelompok) */
+/* Custom Print Rules for Bimbel (Mode A 1-Siswa & Mode B Kelas Kelompok) */
 @media print {
   @page {
     size: A4 portrait;

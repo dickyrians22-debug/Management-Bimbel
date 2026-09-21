@@ -66,6 +66,8 @@ export interface BimbelSettings {
   accentColor?: string; // 'indigo' | 'blue' | 'emerald' | 'violet' | 'rose' | 'amber'
   topbarStyle?: 'theme-solid' | 'theme-tint' | 'dark' | 'light-clean' | 'frosted-glass' | 'vibrant-gradient' | 'aurora-glow' | string; // Gaya warna navbar bar atas
   accentOpacity?: number; // Tingkat ketebalan / opacity warna tema (20 - 100%)
+  headerLogoSize?: 'compact' | 'normal' | 'large'; // Ukuran kotak logo di bilah navigasi atas (32px, 40px, 48px)
+  showBrandInSidebarHeader?: boolean; // Tampilkan logo dan nama Rumah Belajar di atas menu sidebar
 
   // 3 Kotak Keunggulan / Pilar Bimbel di Portal Publik
   programHighlights?: {

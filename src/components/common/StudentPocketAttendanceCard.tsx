@@ -35,7 +35,7 @@ export const StudentPocketAttendanceCard: React.FC<StudentPocketAttendanceCardPr
   filterAllMonths = false,
   isSheetMode = false,
 }) => {
-  const bimbelName = settings?.bimbelName || 'Bimbel Sigma';
+  const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
   const bimbelTagline = settings?.tagline || 'Belajar Sampai Paham, Bukan Sekedar Hafal';
 
   // Calculate Monthly Summary

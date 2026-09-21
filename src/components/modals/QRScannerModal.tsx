@@ -519,7 +519,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 <AlertCircle className="w-10 h-10 text-rose-400" />
                 <h4 className="text-sm font-bold">Kode QR Tidak Dikenali</h4>
                 <p className="text-xs text-rose-200 max-w-xs">
-                  Barcode/QR ini tidak cocok dengan kode siswa mana pun di database Bimbel Sigma.
+                  Barcode/QR ini tidak cocok dengan kode siswa mana pun di database.
                 </p>
               </div>
             )}

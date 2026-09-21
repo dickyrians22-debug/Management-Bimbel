@@ -190,7 +190,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     logoSymbol:
       settings.logoSymbol && settings.logoSymbol !== 'Σ'
         ? settings.logoSymbol
-        : settings.bimbelName && !settings.bimbelName.toLowerCase().includes('sigma')
+        : settings.bimbelName
         ? settings.bimbelName
             .split(' ')
             .map((w) => w[0])
@@ -204,6 +204,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     sidebarFooterNote: settings.sidebarFooterNote || 'Data tersimpan aman di LocalStorage browser',
     accentColor: settings.accentColor || 'indigo',
     topbarStyle: settings.topbarStyle || 'theme-tint',
+    headerLogoSize: settings.headerLogoSize || 'normal',
+    showBrandInSidebarHeader: settings.showBrandInSidebarHeader ?? true,
     accentOpacity: typeof settings.accentOpacity === 'number' ? settings.accentOpacity : 100,
     portalBannerBadge: settings.portalBannerBadge || 'Pusat Layanan Terpadu Siswa & Calon Siswa Bimbel',
     portalBannerTitle: settings.portalBannerTitle || '',
@@ -214,7 +216,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     tutorDashboardBadge: settings.tutorDashboardBadge || 'Ruang Kerja Pengajar (Tutor Access)',
     tutorDashboardTitle: settings.tutorDashboardTitle || '',
     tutorDashboardMessage: settings.tutorDashboardMessage || 'Fokus pada kualitas pembelajaran: catat absensi harian siswa, topik materi, serta evaluasi pemahaman belajar.',
-    studentDashboardBadge: settings.studentDashboardBadge || 'Portal Siswa & Orang Tua Bimbel Sigma',
+    studentDashboardBadge: settings.studentDashboardBadge || 'Portal Siswa & Orang Tua Bimbel',
     studentDashboardTitle: settings.studentDashboardTitle || '',
     studentDashboardMessage: settings.studentDashboardMessage || '“Belajar Sampai Paham, Bukan Sekadar Hafal”. Catat kehadiran mandiri, pantau materi tiap sesi pembelajaran, dan evaluasi hasil belajar.',
     loginWelcomeMessage: settings.loginWelcomeMessage || 'Sistem Manajemen & Presensi Digital Bimbel Terintegrasi',
@@ -371,7 +373,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       ...settings,
       logoSymbol: settings.logoSymbol || 'Σ',
       appVersionBadge: settings.appVersionBadge || 'v2.6 PRO',
-      sidebarFooterTitle: settings.sidebarFooterTitle || 'BIMBEL SIGMA',
+      sidebarFooterTitle: settings.sidebarFooterTitle || settings.bimbelName || 'RUMAH BELAJAR',
       sidebarFooterTagline: settings.sidebarFooterTagline || '“Belajar Sampai Paham”',
       sidebarFooterNote: settings.sidebarFooterNote || 'Data tersimpan aman di LocalStorage browser',
       accentColor: settings.accentColor || 'indigo',
@@ -383,7 +385,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       tutorDashboardBadge: settings.tutorDashboardBadge || 'Ruang Kerja Pengajar (Tutor Access)',
       tutorDashboardTitle: settings.tutorDashboardTitle || '',
       tutorDashboardMessage: settings.tutorDashboardMessage || 'Fokus pada kualitas pembelajaran: catat absensi harian siswa, topik materi, serta evaluasi pemahaman belajar.',
-      studentDashboardBadge: settings.studentDashboardBadge || 'Portal Siswa & Orang Tua Bimbel Sigma',
+      studentDashboardBadge: settings.studentDashboardBadge || 'Portal Siswa & Orang Tua Bimbel',
       studentDashboardTitle: settings.studentDashboardTitle || '',
       studentDashboardMessage: settings.studentDashboardMessage || '“Belajar Sampai Paham, Bukan Sekadar Hafal”. Catat kehadiran mandiri, pantau materi tiap sesi pembelajaran, dan evaluasi hasil belajar.',
       loginWelcomeMessage: settings.loginWelcomeMessage || 'Sistem Manajemen & Presensi Digital Bimbel Terintegrasi',
@@ -773,8 +775,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Copy username & password info
   const handleCopyCredentials = (acc: UserAccount) => {
-    const text = `Akun Bimbel Sigma:\nRole: ${acc.role.toUpperCase()}\nUsername: ${acc.username}\nPassword: ${
-      acc.password || 'sigma123'
+    const text = `Akun Bimbel:\nRole: ${acc.role.toUpperCase()}\nUsername: ${acc.username}\nPassword: ${
+      acc.password || '123456'
     }`;
     navigator.clipboard.writeText(text);
     setCopiedId(acc.id);
@@ -1088,7 +1090,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     const fullBackup = {
       exportDate: new Date().toISOString(),
       version: '2.0.0',
-      appName: 'Bimbel Sigma OMS',
+      appName: settings.bimbelName ? `${settings.bimbelName} OMS` : 'Bimbel OMS',
       data: {
         students,
         attendance,
@@ -1099,12 +1101,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       },
     };
 
+    const safeBimbel = (settings.bimbelName || 'bimbel').toLowerCase().replace(/\s+/g, '_');
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute(
       'download',
-      `backup_bimbel_sigma_${new Date().toISOString().split('T')[0]}.json`
+      `backup_${safeBimbel}_${new Date().toISOString().split('T')[0]}.json`
     );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
@@ -1124,7 +1127,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           setNoticeModal({
             isOpen: true,
             title: 'Format File Tidak Valid',
-            message: 'Format file cadangan tidak valid atau rusak! Pastikan file adalah format JSON cadangan Bimbel Sigma.',
+            message: 'Format file cadangan tidak valid atau rusak! Pastikan file adalah format JSON cadangan sistem bimbel.',
             type: 'error',
           });
           return;
@@ -1191,6 +1194,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       studentDashboardBadge: appearanceForm.studentDashboardBadge,
       studentDashboardTitle: appearanceForm.studentDashboardTitle,
       studentDashboardMessage: appearanceForm.studentDashboardMessage,
+      headerLogoSize: appearanceForm.headerLogoSize || 'normal',
+      showBrandInSidebarHeader: appearanceForm.showBrandInSidebarHeader ?? true,
       loginWelcomeMessage: appearanceForm.loginWelcomeMessage,
     };
     onSaveSettings(updatedSettings);
@@ -1207,9 +1212,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       onConfirm: () => {
         const resetAppearance: BimbelSettings = {
           ...settings,
+          headerLogoSize: 'normal',
+          showBrandInSidebarHeader: true,
           logoSymbol: 'Σ',
           appVersionBadge: 'v2.6 PRO',
-          sidebarFooterTitle: 'BIMBEL SIGMA',
+          sidebarFooterTitle: settings.bimbelName || 'RUMAH BELAJAR',
           sidebarFooterTagline: '“Belajar Sampai Paham”',
           sidebarFooterNote: 'Data tersimpan aman di LocalStorage browser',
           accentColor: 'indigo',
@@ -1225,7 +1232,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           tutorDashboardTitle: '',
           tutorDashboardMessage:
             'Fokus pada kualitas pembelajaran: catat absensi harian siswa, topik materi, serta evaluasi pemahaman belajar.',
-          studentDashboardBadge: 'Portal Siswa & Orang Tua Bimbel Sigma',
+          studentDashboardBadge: 'Portal Siswa & Orang Tua Bimbel',
           studentDashboardTitle: '',
           studentDashboardMessage:
             '“Belajar Sampai Paham, Bukan Sekadar Hafal”. Catat kehadiran mandiri, pantau materi tiap sesi pembelajaran, dan evaluasi hasil belajar.',
@@ -1605,7 +1612,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg w-fit border border-slate-200">
                             <span className="font-mono text-xs font-bold text-slate-700 select-all">
-                              {isPassVisible ? acc.password || 'sigma123' : '••••••••'}
+                              {isPassVisible ? acc.password || '123456' : '••••••••'}
                             </span>
                             <button
                               type="button"
@@ -2849,7 +2856,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={profileForm.bankInfo}
                     onChange={(e) => setProfileForm({ ...profileForm, bankInfo: e.target.value })}
-                    placeholder="BCA: 8830-1234-56 a.n Bimbel Sigma"
+                    placeholder="BCA: 8830-1234-56 a.n Bendahara Bimbel"
                     className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 font-mono"
                   />
                 </div>
@@ -3629,11 +3636,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="border-b-2 border-slate-900 pb-2 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-indigo-950 text-white font-black text-xs flex items-center justify-center shrink-0">
-                        {settings.bimbelName?.slice(0, 2).toUpperCase() || 'SB'}
+                        {settings.bimbelName?.slice(0, 2).toUpperCase() || 'RB'}
                       </div>
                       <div>
                         <p className="font-black text-xs text-slate-950 uppercase leading-none">
-                          {settings.bimbelName || 'BIMBEL SIGMA'}
+                          {settings.bimbelName || 'RUMAH BELAJAR'}
                         </p>
                         <p className="text-[9px] text-amber-700 italic font-bold">
                           "{settings.tagline || 'Belajar Sampai Paham'}"
@@ -4183,11 +4190,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="bg-[#1f2c34] px-4 py-3 flex items-center justify-between border-b border-[#2a3942]">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
-                        {settings.logoSymbol || 'Σ'}
+                        {settings.logoSymbol && settings.logoSymbol !== 'Σ' ? settings.logoSymbol : (settings.bimbelName ? settings.bimbelName.slice(0, 2).toUpperCase() : 'RB')}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-100 leading-tight">
-                          {settings.bimbelName || 'BIMBEL SIGMA'}
+                          {settings.bimbelName || 'RUMAH BELAJAR'}
                         </p>
                         <p className="text-[10px] text-emerald-400">online</p>
                       </div>
@@ -4237,11 +4244,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               kode_siswa: 'FATIH4',
                               nis: 'FATIH4',
                               nama_tutor: 'Kak Sarah Amalia, S.Si.',
-                              nama_bimbel: settings.bimbelName || 'BIMBEL SIGMA',
+                              nama_bimbel: settings.bimbelName || 'RUMAH BELAJAR',
                               tagline_bimbel: settings.tagline || 'Belajar Sampai Paham',
                               telepon_bimbel: settings.phone || '0812-3456-7890',
                               alamat_bimbel: settings.address || 'Jl. Pemuda No. 12, Blora',
-                              rekening_bimbel: settings.bankInfo || 'BCA: 8830-1234-56 a.n Bimbel Sigma Mandiri',
+                              rekening_bimbel: settings.bankInfo || 'BCA: 8830-1234-56 a.n Bendahara Bimbel',
                             }
                           : {
                               nama_siswa: sampleStudent?.name || 'Naureen Zevania Putri Riansyah',
@@ -4277,8 +4284,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                   ? 'Sebagian'
                                   : 'Lunas',
                               rekening_bimbel:
-                                settings.bankInfo || 'BCA: 8830-1234-56 a.n Bimbel Sigma Mandiri',
-                              nama_bimbel: settings.bimbelName || 'BIMBEL SIGMA',
+                                settings.bankInfo || 'BCA: 8830-1234-56 a.n Bendahara Bimbel',
+                              nama_bimbel: settings.bimbelName || 'RUMAH BELAJAR',
                               tagline_bimbel: settings.tagline || 'Belajar Sampai Paham',
                               telepon_bimbel: settings.phone || '0812-3456-7890',
                               alamat_bimbel: settings.address || '',
@@ -4348,11 +4355,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               kode_siswa: 'FATIH4',
                               nis: 'FATIH4',
                               nama_tutor: 'Kak Sarah Amalia, S.Si.',
-                              nama_bimbel: settings.bimbelName || 'BIMBEL SIGMA',
+                              nama_bimbel: settings.bimbelName || 'RUMAH BELAJAR',
                               tagline_bimbel: settings.tagline || 'Belajar Sampai Paham',
                               telepon_bimbel: settings.phone || '0812-3456-7890',
                               alamat_bimbel: settings.address || 'Jl. Pemuda No. 12, Blora',
-                              rekening_bimbel: settings.bankInfo || 'BCA: 8830-1234-56 a.n Bimbel Sigma Mandiri',
+                              rekening_bimbel: settings.bankInfo || 'BCA: 8830-1234-56 a.n Bendahara Bimbel',
                             }
                           : {
                               nama_siswa: sampleStudent?.name || 'Naureen Zevania Putri Riansyah',
@@ -4388,8 +4395,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                   ? 'Sebagian'
                                   : 'Lunas',
                               rekening_bimbel:
-                                settings.bankInfo || 'BCA: 8830-1234-56 a.n Bimbel Sigma Mandiri',
-                              nama_bimbel: settings.bimbelName || 'BIMBEL SIGMA',
+                                settings.bankInfo || 'BCA: 8830-1234-56 a.n Bendahara Bimbel',
+                              nama_bimbel: settings.bimbelName || 'RUMAH BELAJAR',
                               tagline_bimbel: settings.tagline || 'Belajar Sampai Paham',
                               telepon_bimbel: settings.phone || '0812-3456-7890',
                               alamat_bimbel: settings.address || '',
@@ -4450,7 +4457,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Kustomisasi Teks Tampilan Dashboard & Sidebar
               </h3>
               <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-                Ubah tulisan yang ada di sidebar pojok kiri bawah (seperti <span className="font-semibold text-slate-700">“BIMBEL SIGMA”</span> dan <span className="font-semibold text-slate-700">“Belajar Sampai Paham”</span>), header navbar, ucapan selamat datang di dashboard Owner, Tutor, Siswa, hingga halaman login.
+                Ubah tulisan yang ada di sidebar pojok kiri bawah (seperti <span className="font-semibold text-slate-700">“RUMAH BELAJAR”</span> dan <span className="font-semibold text-slate-700">“Belajar Sampai Paham”</span>), header navbar, ucapan selamat datang di dashboard Owner, Tutor, Siswa, hingga halaman login.
               </p>
             </div>
 
@@ -4597,7 +4604,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       {appearanceForm.portalBannerBadge || 'Pusat Layanan Terpadu Siswa & Calon Siswa Bimbel'}
                     </div>
                     <h5 className="text-sm font-black text-white font-heading">
-                      {appearanceForm.portalBannerTitle || `Selamat Datang di Portal Resmi ${settings.bimbelName || 'BIMBEL SIGMA'}`}
+                      {appearanceForm.portalBannerTitle || `Selamat Datang di Portal Resmi ${settings.bimbelName || 'RUMAH BELAJAR'}`}
                     </h5>
                     <p className="text-xs text-slate-300 font-medium leading-relaxed">
                       {appearanceForm.portalBannerSubtitle || 'Daftarkan ananda secara online, pantau presensi dan tanggal kehadiran harian, serta cek status iuran les secara transparan kapan saja.'}
@@ -4612,7 +4619,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       {appearanceForm.ownerDashboardBadge || 'Executive Dashboard (Owner Access)'}
                     </div>
                     <h5 className="text-sm font-black text-white font-heading">
-                      {appearanceForm.ownerDashboardTitle || `${appearanceForm.sidebarFooterTitle || 'BIMBEL SIGMA'} • Budi Santoso, S.Pd.`}
+                      {appearanceForm.ownerDashboardTitle || `${appearanceForm.sidebarFooterTitle || settings.bimbelName || 'RUMAH BELAJAR'} • Budi Santoso, S.Pd.`}
                     </h5>
                     <p className="text-xs text-indigo-200 font-medium leading-relaxed">
                       {appearanceForm.ownerDashboardMessage || `“${(appearanceForm.sidebarFooterTagline || '“Belajar Sampai Paham”').replace(/[“”"]/g, '')}”. Selamat datang, Budi Santoso, S.Pd.! Pantau metrik finansial, absensi digital real-time, dan pembukuan tahunan dalam satu pintu.`}
@@ -4639,7 +4646,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-800 via-indigo-900 to-slate-900 border border-indigo-700/50 space-y-1.5">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
                       <Sparkles className="w-3 h-3" />
-                      {appearanceForm.studentDashboardBadge || 'Portal Siswa & Orang Tua Bimbel Sigma'}
+                      {appearanceForm.studentDashboardBadge || `Portal Siswa & Orang Tua ${appearanceForm.sidebarFooterTitle || settings.bimbelName || 'Bimbel'}`}
                     </div>
                     <h5 className="text-sm font-black text-white font-heading">
                       {appearanceForm.studentDashboardTitle || 'Selamat Belajar, Ananda Siswa!'}
@@ -4681,11 +4688,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={appearanceForm.sidebarFooterTitle || ''}
                     onChange={(e) => setAppearanceForm({ ...appearanceForm, sidebarFooterTitle: e.target.value })}
-                    placeholder="Contoh: BIMBEL SIGMA"
+                    placeholder="Contoh: RUMAH BELAJAR"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-amber-500"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Default: <span className="font-semibold text-slate-600">BIMBEL SIGMA</span>
+                    Default: <span className="font-semibold text-slate-600">RUMAH BELAJAR</span>
                   </p>
                 </div>
 
@@ -4889,6 +4896,136 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                     ✓ Terhubung ke Cetak
                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD 2.5: PENGATURAN UKURAN KOTAK LOGO & KESELARASAN IKON NAVIGASI */}
+            <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 font-heading">
+                    Pengaturan Ukuran Kotak Logo &amp; Keselarasan Navigasi
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Sesuaikan proporsi kotak logo di bilah navigasi atas (Navbar) dan pastikan teks brand "Rumah Belajar" leluasa tanpa tumpang tindih.
+                  </p>
+                </div>
+              </div>
+
+              {/* Ukuran Kotak Logo di Navbar */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Ukuran Kotak Logo di Bilah Navigasi Atas (Header)
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Pilih ukuran kotak logo yang paling proporsional untuk tampilan layar Anda.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    {
+                      id: 'compact',
+                      title: 'Ringkas (Compact)',
+                      sizeLabel: '32 × 32 px',
+                      desc: 'Hemat ruang horizontal, cocok untuk layar laptop ringkas/tablet.',
+                      boxClass: 'w-8 h-8 text-xs',
+                    },
+                    {
+                      id: 'normal',
+                      title: 'Standar Proporsional (Normal)',
+                      sizeLabel: '40 × 40 px',
+                      desc: 'Ukuran ideal seimbang antara logo, teks Rumah Belajar, dan bar tombol.',
+                      boxClass: 'w-10 h-10 text-sm',
+                      isDefault: true,
+                    },
+                    {
+                      id: 'large',
+                      title: 'Menonjol (Large)',
+                      sizeLabel: '46 × 46 px',
+                      desc: 'Kotak logo lebih besar dan dominan untuk tampilan monitor desktop lebar.',
+                      boxClass: 'w-11 h-11 text-base',
+                    },
+                  ].map((opt) => {
+                    const isSelected = (appearanceForm.headerLogoSize || 'normal') === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...appearanceForm, headerLogoSize: opt.id as any };
+                          setAppearanceForm(updated);
+                          onSaveSettings({ ...settings, headerLogoSize: opt.id as any });
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50/50 shadow-sm ring-2 ring-indigo-600/20'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-900">{opt.title}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold">
+                            {opt.sizeLabel}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-snug">{opt.desc}</p>
+                        <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                          <div
+                            className={`${opt.boxClass} rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center shadow-xs shrink-0`}
+                          >
+                            {appearanceForm.logoSymbol || 'RB'}
+                          </div>
+                          <span className="text-xs font-bold text-slate-800">
+                            {settings.bimbelName || 'RUMAH BELAJAR'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tampilkan Identitas Brand di Header Sidebar */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800">
+                    Tampilkan Logo &amp; Nama "Rumah Belajar" di Bagian Atas Menu Samping (Sidebar)
+                  </h5>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Menampilkan identitas bimbel di paling atas bilah menu samping agar nama bimbel selalu terlihat di berbagai tampilan layar.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={appearanceForm.showBrandInSidebarHeader !== false}
+                    onChange={(e) => {
+                      const updated = { ...appearanceForm, showBrandInSidebarHeader: e.target.checked };
+                      setAppearanceForm(updated);
+                      onSaveSettings({ ...settings, showBrandInSidebarHeader: e.target.checked });
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              {/* Status Keselarasan Kotak Ikon & Tombol Aksi */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h5 className="text-xs font-bold text-emerald-950">
+                    Status Keselarasan Dimensi Kotak &amp; Ikon (Anti Tumpang Tindih)
+                  </h5>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Semua kotak aksi di bar navigasi atas (tombol Undo/Redo, Cloud Sync, Live Clock, Portal Publik, Ganti Password, dan Menu Profil) telah dikalibrasi pada tinggi seragam <strong>h-9 (36px)</strong> dengan ikon proporsional <strong>16×16px</strong>. Teks nama bimbel dan tagline kini memiliki ruang fleksibel tanpa pembatasan lebar kaku (fixed width), mencegah teks terpotong atau bertumpukan.
+                  </p>
                 </div>
               </div>
             </div>
@@ -5519,11 +5656,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={appearanceForm.portalBannerTitle || ''}
                     onChange={(e) => setAppearanceForm({ ...appearanceForm, portalBannerTitle: e.target.value })}
-                    placeholder={`Kosongkan untuk otomatis: Selamat Datang di Portal Resmi ${settings.bimbelName || 'BIMBEL SIGMA'}`}
+                    placeholder={`Kosongkan untuk otomatis: Selamat Datang di Portal Resmi ${settings.bimbelName || 'RUMAH BELAJAR'}`}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Bila dikosongkan, judul akan otomatis: <span className="font-semibold text-slate-600">Selamat Datang di Portal Resmi {settings.bimbelName || 'BIMBEL SIGMA'}</span>
+                    Bila dikosongkan, judul akan otomatis: <span className="font-semibold text-slate-600">Selamat Datang di Portal Resmi {settings.bimbelName || 'RUMAH BELAJAR'}</span>
                   </p>
                 </div>
 
@@ -5681,7 +5818,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       type="text"
                       value={appearanceForm.studentDashboardBadge || ''}
                       onChange={(e) => setAppearanceForm({ ...appearanceForm, studentDashboardBadge: e.target.value })}
-                      placeholder="Portal Siswa & Orang Tua Bimbel Sigma"
+                      placeholder="Portal Siswa & Orang Tua Bimbel"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>

@@ -64,7 +64,7 @@ export const DashboardSiswa: React.FC<DashboardSiswaProps> = ({
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const brandTitle = settings?.sidebarFooterTitle || 'Bimbel Sigma';
+  const brandTitle = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
   const brandTagline = (settings?.sidebarFooterTagline || '“Belajar Sampai Paham”').replace(/[“”"]/g, '');
 
   const studentBadge = settings?.studentDashboardBadge || `Portal Siswa & Orang Tua ${brandTitle}`;

@@ -1631,7 +1631,7 @@ export const ProfitLossView: React.FC<ProfitLossViewProps> = ({
           <div className="no-print p-4 bg-indigo-50/70 border border-indigo-200 rounded-3xl flex items-start gap-3 text-xs text-indigo-900">
             <Sparkles className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="font-bold text-sm">Penjelasan Prinsip Akuntansi di Bimbel Sigma:</h4>
+              <h4 className="font-bold text-sm">Penjelasan Prinsip Akuntansi di {settings?.bimbelName || 'Bimbel'}:</h4>
               <p>
                 • <strong>Pendapatan Accrual:</strong> Dihitung berdasarkan perkalian sesi hadir siswa di bulan bersangkutan dengan tarif per sesi (pendapatan diakui saat sesi belajar terlaksana).
               </p>

@@ -241,13 +241,23 @@ export function getInitialProspectiveStudents(): ProspectiveStudent[] {
   try {
     const raw = localStorage.getItem(KEYS.PROSPECTIVE_STUDENTS);
     if (!raw) {
-      localStorage.setItem(KEYS.PROSPECTIVE_STUDENTS, JSON.stringify(INITIAL_PROSPECTIVE_STUDENTS));
-      return INITIAL_PROSPECTIVE_STUDENTS;
+      localStorage.setItem(KEYS.PROSPECTIVE_STUDENTS, JSON.stringify([]));
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_PROSPECTIVE_STUDENTS;
+    if (Array.isArray(parsed)) {
+      // Filter out legacy dummy demo PPDB records
+      const cleaned = parsed.filter(
+        (p) => p.id !== 'ppdb-2026-001' && p.id !== 'ppdb-2026-002'
+      );
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(KEYS.PROSPECTIVE_STUDENTS, JSON.stringify(cleaned));
+      }
+      return cleaned;
+    }
+    return [];
   } catch (e) {
-    return INITIAL_PROSPECTIVE_STUDENTS;
+    return [];
   }
 }
 

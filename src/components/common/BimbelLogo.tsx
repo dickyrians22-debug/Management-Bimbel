@@ -4,8 +4,8 @@ import { BimbelSettings } from '../../types';
 /**
  * Helper to resolve logo URL or adaptive symbol for bimbel.
  * If user set a custom logoUrl, it is prioritized.
- * If logoSymbol was left as default 'Σ' but bimbel name is no longer 'Sigma' (e.g. 'RUMAH BELAJAR'),
- * it automatically generates the institution initials (e.g. 'RB') instead of sticking to Greek Sigma.
+ * If logoSymbol was left as default 'Σ' or empty,
+ * it automatically generates the institution initials (e.g. 'RB' for 'RUMAH BELAJAR').
  */
 export function getBimbelLogoInfo(settings?: BimbelSettings) {
   const bimbelName = settings?.bimbelName?.trim() || 'RUMAH BELAJAR';
@@ -13,8 +13,7 @@ export function getBimbelLogoInfo(settings?: BimbelSettings) {
 
   let symbol = settings?.logoSymbol?.trim() || '';
 
-  const isSigmaNamed = bimbelName.toLowerCase().includes('sigma');
-  if (!symbol || (symbol === 'Σ' && !isSigmaNamed)) {
+  if (!symbol || symbol === 'Σ') {
     const words = bimbelName.split(/\s+/).filter(Boolean);
     if (words.length >= 2) {
       symbol = (words[0][0] + words[1][0]).toUpperCase();

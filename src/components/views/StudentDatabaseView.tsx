@@ -22,7 +22,7 @@ import {
   ChevronUp,
   QrCode,
 } from 'lucide-react';
-import { Student, StudentLevel, ClassType, StudentStatus, UserRole, UserAccount } from '../../types';
+import { Student, StudentLevel, ClassType, StudentStatus, UserRole, UserAccount, BimbelSettings } from '../../types';
 import { formatRupiah, formatDateIndo, resolveTutorName } from '../../utils/storage';
 import { exportToExcel, formatStudentsForExcel } from '../../utils/exportUtils';
 import { UserAvatar } from '../common/UserAvatar';
@@ -31,6 +31,7 @@ interface StudentDatabaseViewProps {
   students: Student[];
   users?: UserAccount[];
   userRole: UserRole;
+  settings?: BimbelSettings;
   onOpenStudentModal: (editStudent?: Student) => void;
   onDeleteStudent: (id: string, name: string) => void;
   onResetStudents?: () => void;
@@ -41,6 +42,7 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
   students,
   users = [],
   userRole,
+  settings,
   onOpenStudentModal,
   onDeleteStudent,
   onResetStudents,
@@ -127,7 +129,8 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
 
   const handleExportExcel = () => {
     const formattedData = formatStudentsForExcel(filteredStudents);
-    exportToExcel(formattedData, 'Master_Data_Siswa_Bimbel_Sigma', 'Data Siswa');
+    const safeBimbel = (settings?.bimbelName || 'Bimbel').replace(/\s+/g, '_');
+    exportToExcel(formattedData, `Master_Data_Siswa_${safeBimbel}`, 'Data Siswa');
   };
 
   return (
@@ -311,7 +314,8 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {currentRecords.map((std) => {
                   const cleanPhone = (std.parentPhone || '').replace(/[^0-9]/g, '');
-                  const waUrl = `https://wa.me/62${cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone}?text=Halo%20Bapak%2FIbu%20${encodeURIComponent(std.parentName || std.name)},%20kami%20dari%20Bimbel%20Sigma...`;
+                  const currentBimbelName = settings?.bimbelName || 'Bimbel';
+                  const waUrl = `https://wa.me/62${cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone}?text=Halo%20Bapak%2FIbu%20${encodeURIComponent(std.parentName || std.name)},%20kami%20dari%20${encodeURIComponent(currentBimbelName)}...`;
 
                   return (
                     <tr key={std.id} className="hover:bg-slate-50/80 transition">

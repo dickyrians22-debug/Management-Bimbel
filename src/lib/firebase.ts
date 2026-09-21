@@ -101,7 +101,52 @@ export interface FirestoreErrorInfo {
   };
 }
 
+let quotaExceeded = false;
+const quotaListeners = new Set<(exceeded: boolean) => void>();
+
+export function isFirestoreQuotaError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = error instanceof Error ? error.message : String(error);
+  const code = (error as any)?.code;
+  return (
+    code === 'resource-exhausted' ||
+    msg.toLowerCase().includes('quota exceeded') ||
+    msg.toLowerCase().includes('resource-exhausted')
+  );
+}
+
+export function getIsQuotaExceeded(): boolean {
+  return quotaExceeded;
+}
+
+export function subscribeQuotaState(cb: (exceeded: boolean) => void): () => void {
+  quotaListeners.add(cb);
+  cb(quotaExceeded);
+  return () => quotaListeners.delete(cb);
+}
+
+export function notifyQuotaExceeded() {
+  if (!quotaExceeded) {
+    quotaExceeded = true;
+    console.warn(
+      'Firestore quota limit reached (code=resource-exhausted). Switching seamlessly to LocalStorage mode.'
+    );
+    quotaListeners.forEach((cb) => {
+      try {
+        cb(true);
+      } catch (e) {
+        console.warn('Quota listener error:', e);
+      }
+    });
+  }
+}
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  if (isFirestoreQuotaError(error)) {
+    notifyQuotaExceeded();
+    return;
+  }
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -142,32 +187,51 @@ export function subscribeToCollection<T>(
   onUpdate: (data: T[]) => void,
   onError?: (error: Error) => void
 ): () => void {
-  if (!db) {
-    console.warn('Firestore db not initialized, subscription skipped');
+  if (!db || quotaExceeded) {
     return () => {};
   }
 
   try {
     const colRef = collection(db, collectionName);
-    const unsubscribe = onSnapshot(
+    let unsubscribed = false;
+    let internalUnsubscribe: (() => void) | null = null;
+
+    internalUnsubscribe = onSnapshot(
       colRef,
       (snapshot) => {
+        if (unsubscribed) return;
         const items: T[] = [];
         snapshot.forEach((docSnap) => {
           items.push({
-            id: docSnap.id,
             ...docSnap.data(),
+            id: docSnap.id,
           } as unknown as T);
         });
         onUpdate(items);
       },
       (error) => {
+        if (isFirestoreQuotaError(error)) {
+          notifyQuotaExceeded();
+          unsubscribed = true;
+          try {
+            if (internalUnsubscribe) internalUnsubscribe();
+          } catch {}
+        }
         handleFirestoreError(error, OperationType.GET, collectionName);
         if (onError) onError(error);
       }
     );
-    return unsubscribe;
+
+    return () => {
+      unsubscribed = true;
+      try {
+        if (internalUnsubscribe) internalUnsubscribe();
+      } catch {}
+    };
   } catch (err: any) {
+    if (isFirestoreQuotaError(err)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(err, OperationType.GET, collectionName);
     if (onError) onError(err);
     return () => {};
@@ -182,13 +246,16 @@ export async function syncDocToFirestore<T extends { id: string }>(
   docId: string,
   data: T
 ): Promise<void> {
-  if (!db) return;
+  if (!db || quotaExceeded) return;
   try {
     const docRef = doc(db, collectionName, docId);
     // Sanitize undefined fields which Firestore rejects
     const cleanData = JSON.parse(JSON.stringify(data));
     await setDoc(docRef, cleanData, { merge: true });
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${docId}`);
   }
 }
@@ -200,11 +267,14 @@ export async function deleteDocFromFirestore(
   collectionName: string,
   docId: string
 ): Promise<void> {
-  if (!db) return;
+  if (!db || quotaExceeded) return;
   try {
     const docRef = doc(db, collectionName, docId);
     await deleteDoc(docRef);
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${docId}`);
   }
 }
@@ -216,7 +286,7 @@ export async function batchSeedToFirestore(
   collectionName: string,
   items: Array<{ id: string } & Record<string, any>>
 ): Promise<void> {
-  if (!db || !items || items.length === 0) return;
+  if (!db || quotaExceeded || !items || items.length === 0) return;
   try {
     const batch = writeBatch(db);
     items.forEach((item) => {
@@ -226,6 +296,9 @@ export async function batchSeedToFirestore(
     });
     await batch.commit();
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.WRITE, collectionName);
   }
 }
@@ -237,7 +310,7 @@ export async function replaceAllInCollection(
   collectionName: string,
   newItems: Array<{ id: string } & Record<string, any>>
 ): Promise<void> {
-  if (!db) return;
+  if (!db || quotaExceeded) return;
   try {
     const colRef = collection(db, collectionName);
     const existingSnap = await getDocs(colRef);
@@ -260,6 +333,9 @@ export async function replaceAllInCollection(
       await insertBatch.commit();
     }
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.WRITE, collectionName);
   }
 }
@@ -268,7 +344,7 @@ export async function replaceAllInCollection(
  * Clear all documents in a Firestore collection
  */
 export async function clearFirestoreCollection(collectionName: string): Promise<void> {
-  if (!db) return;
+  if (!db || quotaExceeded) return;
   try {
     const colRef = collection(db, collectionName);
     const existingSnap = await getDocs(colRef);
@@ -280,6 +356,9 @@ export async function clearFirestoreCollection(collectionName: string): Promise<
     });
     await deleteBatch.commit();
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.DELETE, collectionName);
   }
 }
@@ -288,12 +367,15 @@ export async function clearFirestoreCollection(collectionName: string): Promise<
  * Check if collection has documents in Firestore
  */
 export async function checkCollectionCount(collectionName: string): Promise<number> {
-  if (!db) return -1;
+  if (!db || quotaExceeded) return -1;
   try {
     const colRef = collection(db, collectionName);
     const snapshot = await getDocs(colRef);
     return snapshot.size;
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      notifyQuotaExceeded();
+    }
     handleFirestoreError(error, OperationType.GET, collectionName);
     return -1;
   }

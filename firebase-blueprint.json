@@ -2,7 +2,7 @@
   "entities": {
     "Student": {
       "title": "Student",
-      "description": "Active registered student at Bimbel Sigma",
+      "description": "Active registered student at Bimbel",
       "type": "object",
       "properties": {
         "id": { "type": "string" },

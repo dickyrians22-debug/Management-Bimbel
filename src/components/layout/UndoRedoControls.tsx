@@ -72,7 +72,7 @@ export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
   return (
     <div className="relative inline-flex items-center" ref={containerRef}>
       <div
-        className={`flex items-center gap-0.5 p-1 rounded-xl border ${
+        className={`flex items-center gap-0.5 p-1 rounded-xl border h-9 ${
           isLight
             ? 'bg-slate-100 border-slate-200 text-slate-700'
             : 'bg-slate-800/80 border-slate-700/60 text-slate-300'

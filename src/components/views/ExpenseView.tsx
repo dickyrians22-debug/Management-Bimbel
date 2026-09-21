@@ -81,9 +81,10 @@ export const ExpenseView: React.FC<ExpenseViewProps> = ({
       'Catatan': e.notes || '-',
     }));
 
+    const safeBimbel = (settings?.bimbelName || 'Bimbel').replace(/\s+/g, '_');
     exportToExcel(
       dataForExcel,
-      `Pengeluaran_Bimbel_Sigma_${new Date().toISOString().split('T')[0]}`,
+      `Pengeluaran_${safeBimbel}_${new Date().toISOString().split('T')[0]}`,
       'Beban Pengeluaran'
     );
   };

@@ -202,7 +202,7 @@ export const AVAILABLE_WA_VARIABLES = [
   { key: '{{status_bayar}}', label: 'Status Pembayaran', category: 'billing', example: 'Belum Bayar / Sebagian / Lunas' },
 
   // Bimbel Profile Variables
-  { key: '{{nama_bimbel}}', label: 'Nama Resmi Bimbel', category: 'bimbel', example: 'BIMBEL SIGMA' },
+  { key: '{{nama_bimbel}}', label: 'Nama Resmi Bimbel', category: 'bimbel', example: 'RUMAH BELAJAR' },
   { key: '{{tagline_bimbel}}', label: 'Slogan / Tagline Bimbel', category: 'bimbel', example: 'Belajar Sampai Paham' },
   { key: '{{telepon_bimbel}}', label: 'No. Telepon / CS Bimbel', category: 'bimbel', example: '0812-3456-7890' },
   { key: '{{alamat_bimbel}}', label: 'Alamat / Lokasi Bimbel', category: 'bimbel', example: 'Jl. Pemuda No. 12' },

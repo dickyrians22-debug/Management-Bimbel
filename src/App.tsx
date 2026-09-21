@@ -67,8 +67,11 @@ import {
   replaceAllInCollection,
   clearFirestoreCollection,
   checkCollectionCount,
+  subscribeQuotaState,
+  getIsQuotaExceeded,
   COLLECTIONS,
 } from './lib/firebase';
+import { AlertCircle, X } from 'lucide-react';
 
 // Layout Components
 import { Navbar } from './components/layout/Navbar';
@@ -161,10 +164,23 @@ export const sanitizeAndFixUserAccounts = (
   return { fixed: sortUsersByRole(result), changed };
 };
 
+const AUTH_SESSION_KEY = 'bimbel_auth_user';
+const LEGACY_AUTH_SESSION_KEY = 'bimbel_sigma_auth_user';
+
+const saveUserSession = (user: UserSession | null) => {
+  if (user) {
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(user));
+    localStorage.removeItem(LEGACY_AUTH_SESSION_KEY);
+  } else {
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    localStorage.removeItem(LEGACY_AUTH_SESSION_KEY);
+  }
+};
+
 export default function App() {
   // 1. Authentication State - Mandatory login required for fresh sessions
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
-    const saved = localStorage.getItem('bimbel_sigma_auth_user');
+    const saved = localStorage.getItem(AUTH_SESSION_KEY) || localStorage.getItem(LEGACY_AUTH_SESSION_KEY);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -180,6 +196,8 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCloudConnected, setIsCloudConnected] = useState(true);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(() => getIsQuotaExceeded());
+  const [isQuotaBannerDismissed, setIsQuotaBannerDismissed] = useState(false);
   const [showPublicPortal, setShowPublicPortal] = useState(false);
 
   // 3. Core Data States (Synced with LocalStorage & Firestore Cloud)
@@ -302,10 +320,10 @@ export default function App() {
       if (targetItem.redo) {
         setRedoStack((prev) => [targetItem, ...prev.slice(0, 19)]);
       }
-      showToast(`Perubahan berhasil dibatalkan: "${targetItem.title}"`, 'info', undefined, 4000);
+      showToast(`Perubahan berhasil dibatalkan: "${targetItem.title}"`, 'info', undefined, 1800);
     } catch (error) {
       console.error('Error executing undo:', error);
-      showToast('Gagal membatalkan perubahan.', 'error');
+      showToast('Gagal membatalkan perubahan.', 'error', undefined, 2500);
     }
   };
 
@@ -324,10 +342,10 @@ export default function App() {
       await targetItem.redo();
       setRedoStack((prev) => prev.filter((item) => item.id !== targetItem.id));
       setUndoStack((prev) => [targetItem, ...prev.slice(0, 19)]);
-      showToast(`Tindakan diulangi: "${targetItem.title}"`, 'info', undefined, 4000);
+      showToast(`Tindakan diulangi: "${targetItem.title}"`, 'info', undefined, 1800);
     } catch (error) {
       console.error('Error executing redo:', error);
-      showToast('Gagal mengulangi tindakan.', 'error');
+      showToast('Gagal mengulangi tindakan.', 'error', undefined, 2500);
     }
   };
 
@@ -369,34 +387,43 @@ export default function App() {
 
   // --- Realtime Firestore Cloud Synchronization & Auto-Seeding ---
   useEffect(() => {
-    const unsubs: Array<() => void> = [];
+    // Listen to Quota Exceeded events
+    const unsubQuota = subscribeQuotaState((exceeded) => {
+      setIsQuotaExceeded(exceeded);
+      if (exceeded) {
+        setIsCloudConnected(false);
+      }
+    });
+
+    const unsubs: Array<() => void> = [unsubQuota];
+
+    // If quota is already exceeded, don't attempt cloud calls
+    if (getIsQuotaExceeded()) {
+      setIsCloudConnected(false);
+      return () => {
+        unsubs.forEach((u) => {
+          try { u(); } catch {}
+        });
+      };
+    }
 
     // Auto-seed cloud if database is fresh/empty
     const checkAndSeedCloud = async () => {
+      if (getIsQuotaExceeded()) return;
       try {
         const usersCount = await checkCollectionCount(COLLECTIONS.USERS);
-        if (usersCount === 0) {
+        if (usersCount === 0 && !getIsQuotaExceeded()) {
           console.log('Seeding essential accounts and students to Firestore...');
           await batchSeedToFirestore(COLLECTIONS.USERS, DEFAULT_ACCOUNTS);
           await batchSeedToFirestore(COLLECTIONS.STUDENTS, INITIAL_STUDENTS);
-          await batchSeedToFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, INITIAL_PROSPECTIVE_STUDENTS);
           await syncDocToFirestore(COLLECTIONS.SETTINGS, 'default', { id: 'default', ...DEFAULT_SETTINGS });
           console.log('Firestore essential seed completed.');
-        } else if (usersCount > 0) {
-          // If Firestore contains fewer than 25 students or old mock data, update with student list and user accounts
-          const studentCount = await checkCollectionCount(COLLECTIONS.STUDENTS);
-          if (studentCount > 0 && studentCount < 25) {
-            console.log('Updating Firestore with 25 students from bimbel list...');
-            await replaceAllInCollection(COLLECTIONS.STUDENTS, INITIAL_STUDENTS);
-            await replaceAllInCollection(COLLECTIONS.USERS, DEFAULT_ACCOUNTS);
-          }
+        }
 
-          // If Firestore contains fewer than 170 attendance records, sync the complete attendance logs
-          const attendanceCount = await checkCollectionCount(COLLECTIONS.ATTENDANCE);
-          if (attendanceCount > 0 && attendanceCount < 170) {
-            console.log('Updating Firestore with 170 attendance records...');
-            await replaceAllInCollection(COLLECTIONS.ATTENDANCE, INITIAL_ATTENDANCE);
-          }
+        // Clean up any legacy dummy prospective students from Firestore if lingering
+        if (!getIsQuotaExceeded()) {
+          deleteDocFromFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, 'ppdb-2026-001').catch(() => {});
+          deleteDocFromFirestore(COLLECTIONS.PROSPECTIVE_STUDENTS, 'ppdb-2026-002').catch(() => {});
         }
       } catch (e) {
         console.warn('Initial cloud seed check:', e);
@@ -434,14 +461,9 @@ export default function App() {
     const unsubIncomes = subscribeToCollection<IncomeRecord>(
       COLLECTIONS.INCOMES,
       (cloudData) => {
-        const { sanitized, hasChanges } = sanitizeAndHarmonizeIncomes(cloudData, settings);
+        const { sanitized } = sanitizeAndHarmonizeIncomes(cloudData, settings);
         setIncomes(sanitized);
         saveIncomes(sanitized);
-        if (hasChanges && sanitized.length > 0) {
-          sanitized.forEach((inc) => {
-            syncDocToFirestore(COLLECTIONS.INCOMES, inc.id, inc).catch(console.error);
-          });
-        }
         setIsCloudConnected(true);
       },
       () => setIsCloudConnected(false)
@@ -452,14 +474,9 @@ export default function App() {
     const unsubExpenses = subscribeToCollection<ExpenseRecord>(
       COLLECTIONS.EXPENSES,
       (cloudData) => {
-        const { sanitized, hasChanges } = sanitizeAndHarmonizeExpenses(cloudData, settings);
+        const { sanitized } = sanitizeAndHarmonizeExpenses(cloudData, settings);
         setExpenses(sanitized);
         saveExpenses(sanitized);
-        if (hasChanges && sanitized.length > 0) {
-          sanitized.forEach((exp) => {
-            syncDocToFirestore(COLLECTIONS.EXPENSES, exp.id, exp).catch(console.error);
-          });
-        }
         setIsCloudConnected(true);
       },
       () => setIsCloudConnected(false)
@@ -471,16 +488,9 @@ export default function App() {
       COLLECTIONS.USERS,
       (cloudData) => {
         if (cloudData.length > 0) {
-          const { fixed, changed } = sanitizeAndFixUserAccounts(cloudData);
+          const { fixed } = sanitizeAndFixUserAccounts(cloudData);
           setUsers(fixed);
           saveUsers(fixed);
-
-          // If there were collisions that got automatically resolved, sync fixed docs back to Firestore
-          if (changed) {
-            fixed.forEach((u) => {
-              syncDocToFirestore(COLLECTIONS.USERS, u.id, u).catch(console.error);
-            });
-          }
 
           // Auto-sync currentUser session data if modified in database
           setCurrentUser((prevUser) => {
@@ -492,7 +502,7 @@ export default function App() {
             );
             if (matched) {
               const updatedSession = { ...prevUser, ...matched };
-              localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(updatedSession));
+              saveUserSession(updatedSession);
               return updatedSession;
             }
             return prevUser;
@@ -523,8 +533,11 @@ export default function App() {
     const unsubProspective = subscribeToCollection<ProspectiveStudent>(
       COLLECTIONS.PROSPECTIVE_STUDENTS,
       (cloudData) => {
-        setProspectiveStudents(cloudData);
-        saveProspectiveStudents(cloudData);
+        const cleanData = cloudData.filter(
+          (p) => p.id !== 'ppdb-2026-001' && p.id !== 'ppdb-2026-002'
+        );
+        setProspectiveStudents(cleanData);
+        saveProspectiveStudents(cleanData);
         setIsCloudConnected(true);
       },
       () => setIsCloudConnected(false)
@@ -542,16 +555,13 @@ export default function App() {
     };
   }, []);
 
-  // Auto-harmonize expenses and incomes whenever database settings or categories change
+  // Auto-harmonize expenses and incomes whenever database settings or categories change (locally only, without write cascades)
   useEffect(() => {
     if (expenses.length > 0) {
       const { sanitized: cleanExp, hasChanges: expChanged } = sanitizeAndHarmonizeExpenses(expenses, settings);
       if (expChanged) {
         setExpenses(cleanExp);
         saveExpenses(cleanExp);
-        cleanExp.forEach((exp) => {
-          syncDocToFirestore(COLLECTIONS.EXPENSES, exp.id, exp).catch(console.error);
-        });
       }
     }
 
@@ -560,12 +570,15 @@ export default function App() {
       if (incChanged) {
         setIncomes(cleanInc);
         saveIncomes(cleanInc);
-        cleanInc.forEach((inc) => {
-          syncDocToFirestore(COLLECTIONS.INCOMES, inc.id, inc).catch(console.error);
-        });
       }
     }
   }, [settings]);
+
+  // Dynamic document.title matching custom bimbel name
+  useEffect(() => {
+    const title = settings.bimbelName ? `${settings.bimbelName} - LMS & OMS` : 'Sistem Manajemen Bimbingan Belajar - LMS & OMS';
+    document.title = title;
+  }, [settings.bimbelName]);
 
   // Apply Theme Color to root CSS variables dynamically
   useEffect(() => {
@@ -575,19 +588,19 @@ export default function App() {
   // --- Handlers: Auth ---
   const handleLoginSuccess = (user: UserSession) => {
     setCurrentUser(user);
-    localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(user));
+    saveUserSession(user);
     setCurrentTab(user.role === 'siswa' ? 'student-portal' : 'dashboard');
     showToast(`Selamat datang, ${user.name} (${user.role.toUpperCase()})`);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('bimbel_sigma_auth_user');
+    saveUserSession(null);
     setCurrentUser(null);
   };
 
   const handleSwitchUser = (user: UserSession) => {
     setCurrentUser(user);
-    localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(user));
+    saveUserSession(user);
     setCurrentTab(user.role === 'siswa' ? 'student-portal' : 'dashboard');
     showToast(`Beralih ke tampilan akun: ${user.name} (${user.role.toUpperCase()})`);
   };
@@ -1033,7 +1046,7 @@ export default function App() {
     showToast(
       existingIndex !== -1
         ? `✨ Data ${finalStudent.name} (${finalStudent.code}) di Database Siswa berhasil disinkronkan!`
-        : `🎉 ${finalStudent.name} (${finalStudent.code}) resmi diterima menjadi Siswa Bimbel Sigma! Akun login: @${finalStudent.code.toLowerCase()} (Pass: 123)`
+        : `🎉 ${finalStudent.name} (${finalStudent.code}) resmi diterima menjadi Siswa ${settings?.bimbelName || 'Bimbel'}! Akun login: @${finalStudent.code.toLowerCase()} (Pass: 123)`
     );
   };
 
@@ -1639,24 +1652,29 @@ export default function App() {
   const handleDeleteIncome = (incomeOrId: IncomeRecord | string, customLabel?: string) => {
     const id = typeof incomeOrId === 'string' ? incomeOrId : incomeOrId.id;
     const target = typeof incomeOrId === 'object' ? incomeOrId : incomes.find((i) => i.id === id);
-    const itemName = customLabel || (target ? `${target.receiptNumber} - ${target.studentName} (Rp ${target.amount.toLocaleString('id-ID')})` : 'Penerimaan SPP');
+    const isSpp = target ? (isSystemIncomeCategory(target.category || '', settings) || target.incomeCategory === 'spp_monthly') : false;
+    const itemName = customLabel || (target ? `${target.receiptNumber} - ${target.studentName || target.sourceName || target.category} (${formatRupiah(target.amount)})` : 'Catatan Kas Masuk');
 
     setDeleteDialog({
       isOpen: true,
-      title: 'Hapus Kas Masuk SPP',
-      message: 'Apakah Anda yakin ingin menghapus catatan penerimaan kas SPP ini?',
+      title: isSpp ? 'Hapus Kas Masuk SPP' : 'Hapus Transaksi Kas Masuk',
+      message: isSpp
+        ? 'Apakah Anda yakin ingin menghapus catatan penerimaan kas SPP ini?'
+        : 'Apakah Anda yakin ingin menghapus catatan penerimaan kas masuk ini?',
       itemName,
       onConfirm: () => {
-        const updated = incomes.filter((i) => i.id !== id);
-        setIncomes(updated);
-        saveIncomes(updated);
+        setIncomes((prev) => {
+          const updated = prev.filter((i) => i.id !== id);
+          saveIncomes(updated);
+          return updated;
+        });
         deleteDocFromFirestore(COLLECTIONS.INCOMES, id).catch(console.error);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
 
         if (target) {
           pushUndoAction({
             id: `undo-inc-del-${target.id}-${Date.now()}`,
-            title: `Hapus Kas Masuk: ${target.studentName || target.sourceName} (${formatRupiah(target.amount)})`,
+            title: `Hapus Kas Masuk: ${target.studentName || target.sourceName || target.category} (${formatRupiah(target.amount)})`,
             category: 'income',
             timestamp: Date.now(),
             undo: async () => {
@@ -1677,7 +1695,7 @@ export default function App() {
             },
           });
         } else {
-          showToast(`Catatan kas masuk SPP telah dihapus.`);
+          showToast(`Catatan kas masuk telah dihapus.`);
         }
       },
     });
@@ -1860,7 +1878,7 @@ export default function App() {
       if (currentUser && currentUser.id === accountData.id) {
         const updatedSession = { ...currentUser, ...accountData, username: cleanUsername, name: cleanName };
         setCurrentUser(updatedSession);
-        localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(updatedSession));
+        saveUserSession(updatedSession);
       }
 
       // If tutor name or details changed, synchronize historical records across attendance, students & expenses
@@ -1899,7 +1917,7 @@ export default function App() {
             await syncDocToFirestore(COLLECTIONS.USERS, existingUser.id, existingUser);
             if (currentUser && currentUser.id === existingUser.id) {
               setCurrentUser(existingUser);
-              localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(existingUser));
+              saveUserSession(existingUser);
             }
           },
           redo: async () => {
@@ -2063,7 +2081,7 @@ export default function App() {
     if (currentUser && currentUser.username === username) {
       const updatedSession = { ...currentUser, password: newPass };
       setCurrentUser(updatedSession);
-      localStorage.setItem('bimbel_sigma_auth_user', JSON.stringify(updatedSession));
+      saveUserSession(updatedSession);
     }
 
     showToast(`Kata sandi untuk @${username} berhasil diperbarui dan tersinkronisasi.`);
@@ -2351,6 +2369,7 @@ export default function App() {
         onOpenChangePasswordModal={() => handleOpenChangePasswordModal(currentUser)}
         onOpenPublicPortal={() => setShowPublicPortal(true)}
         isCloudConnected={isCloudConnected}
+        isQuotaExceeded={isQuotaExceeded}
         undoStack={undoStack}
         redoStack={redoStack}
         onUndo={() => performUndo()}
@@ -2378,6 +2397,34 @@ export default function App() {
 
         {/* Main View Area */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 min-h-0">
+          {/* Informative Quota Notice Banner */}
+          {isQuotaExceeded && !isQuotaBannerDismissed && (
+            <div className="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+              <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-amber-800 dark:text-amber-300">
+                    Mode Penyimpanan Lokal Aktif (Kuota Harian Cloud Tercapai)
+                  </p>
+                  <button
+                    onClick={() => setIsQuotaBannerDismissed(true)}
+                    className="p-1 rounded-lg hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition shrink-0 cursor-pointer"
+                    title="Tutup pemberitahuan ini"
+                    aria-label="Tutup pemberitahuan"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="mt-1 text-amber-700/90 dark:text-amber-200/80 leading-relaxed text-xs">
+                  Kuota baca/tulis gratis harian Firebase Firestore dari Google untuk hari ini telah mencapai batas harian. 
+                  Aplikasi tetap beroperasi 100% normal dengan penyimpanan aman di memori lokal browser Anda (LocalStorage). 
+                  Data Anda tidak hilang dan sinkronisasi cloud akan otomatis aktif kembali besok saat kuota harian direset oleh Google.
+                </p>
+              </div>
+            </div>
+          )}
           {/* TAB 1: DASHBOARD (Role-Based Display) */}
           {currentTab === 'dashboard' && currentUser.role === 'owner' && (
             <DashboardOwner
@@ -2435,6 +2482,7 @@ export default function App() {
               students={students}
               users={users}
               userRole={currentUser.role}
+              settings={settings}
               onOpenStudentModal={handleOpenStudentModal}
               onDeleteStudent={handleDeleteStudent}
               onResetStudents={handleResetToScreenshotStudents}
@@ -2469,6 +2517,7 @@ export default function App() {
               users={users}
               userRole={currentUser.role}
               currentUserName={currentUser.name}
+              settings={settings}
               onOpenAttendanceModal={handleOpenAttendanceModal}
               onOpenBatchAttendanceModal={() => setIsBatchAttendanceModalOpen(true)}
               onDeleteAttendance={handleDeleteAttendance}

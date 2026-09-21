@@ -69,6 +69,9 @@ export function triggerHaptic(type: 'success' | 'warning' = 'success'): void {
 
 export function extractStudentCodeFromQR(decodedText: string): string {
   const trimmed = decodedText.trim();
+  if (trimmed.startsWith('STUDENT:')) {
+    return trimmed.replace('STUDENT:', '').trim();
+  }
   if (trimmed.startsWith('SIGMA:STUDENT:')) {
     return trimmed.replace('SIGMA:STUDENT:', '').trim();
   }

@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { ActiveTab, UserSession, BimbelSettings } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
+import { BimbelLogo } from '../common/BimbelLogo';
+import { getDocumentThemeStyles } from '../../utils/theme';
 
 interface SidebarProps {
   currentTab: ActiveTab;
@@ -64,9 +66,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpenMobile, onCloseMobile]);
 
+  const bimbelName = settings?.bimbelName || settings?.sidebarFooterTitle || 'RUMAH BELAJAR';
+  const tagline = settings?.tagline || settings?.sidebarFooterTagline || 'Belajar Sampai Paham';
+  const theme = getDocumentThemeStyles(settings?.accentColor, settings?.accentOpacity);
+  const showBrandHeader = settings?.showBrandInSidebarHeader !== false;
   const footerTitle = settings?.sidebarFooterTitle || settings?.bimbelName || 'RUMAH BELAJAR';
   const footerTagline = settings?.sidebarFooterTagline || settings?.tagline || '“Belajar Sampai Paham”';
   const footerNote = settings?.sidebarFooterNote || 'Data tersimpan aman di LocalStorage browser';
+
+  // Derive collapsed label dynamically from bimbelName / footerTitle or logoSymbol
+  const collapsedLabel = (() => {
+    if (settings?.logoSymbol && settings.logoSymbol !== 'Σ') {
+      return settings.logoSymbol;
+    }
+    const name = (settings?.bimbelName || footerTitle || '').trim();
+    if (!name) return 'BIMBEL';
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length > 1) {
+      return words.map((w) => w[0]).join('').slice(0, 3).toUpperCase();
+    }
+    return name.slice(0, 4).toUpperCase();
+  })();
 
   interface NavItem {
     id: ActiveTab;
@@ -249,10 +269,94 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isCollapsed ? 'lg:w-20' : 'lg:w-72'
         } ${isOpenMobile ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full w-72 lg:translate-x-0 lg:shadow-none'}`}
       >
-        {/* User Card Header */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50/80">
+        {/* 1. Brand Identity Header (Tampilkan jika diaktifkan di Pengaturan) */}
+        {showBrandHeader && (
+          <div className={`border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white ${isCollapsed ? 'p-2.5 flex flex-col items-center' : 'p-3.5 sm:p-4'}`}>
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div 
+                    className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-md shrink-0 select-none overflow-hidden p-0.5"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.primary}, ${theme.dark})`,
+                      boxShadow: `0 4px 12px ${theme.primary}35`,
+                    }}
+                  >
+                    <BimbelLogo settings={settings} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight font-heading truncate">
+                        {bimbelName}
+                      </h3>
+                      {settings?.appVersionBadge && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                          {settings.appVersionBadge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10.5px] text-slate-500 font-medium truncate">
+                      {tagline}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Close Button on Mobile */}
+                <button
+                  type="button"
+                  onClick={() => onCloseMobile?.()}
+                  className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 transition cursor-pointer active:scale-95 shrink-0"
+                  title="Tutup Menu Samping (Esc)"
+                  aria-label="Tutup Menu Samping"
+                >
+                  <X className="w-5 h-5 stroke-[2.2]" />
+                </button>
+
+                {/* Collapse Button on Desktop */}
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer active:scale-95 shrink-0"
+                    title="Ciutkan Menu Samping"
+                    aria-label="Ciutkan Menu Samping"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-0.5">
+                <div 
+                  className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-md shrink-0 select-none overflow-hidden p-0.5"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.primary}, ${theme.dark})`,
+                    boxShadow: `0 4px 12px ${theme.primary}35`,
+                  }}
+                  title={`${bimbelName} - ${tagline}`}
+                >
+                  <BimbelLogo settings={settings} />
+                </div>
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer active:scale-95"
+                    title="Lebarkan Menu Samping"
+                    aria-label="Lebarkan Menu Samping"
+                  >
+                    <PanelLeftOpen className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. User Card Sub-Header */}
+        <div className={`border-b border-slate-100 bg-slate-50/60 ${isCollapsed ? 'p-2 flex flex-col items-center' : 'p-3 sm:p-3.5'}`}>
           {!isCollapsed ? (
-            <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <UserAvatar
                   avatar={currentUser.avatar}
@@ -281,32 +385,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
 
-              {/* Close Button on Mobile */}
-              <button
-                type="button"
-                onClick={() => onCloseMobile?.()}
-                className="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200/80 transition cursor-pointer active:scale-95 shrink-0"
-                title="Tutup Menu Samping (Esc)"
-                aria-label="Tutup Menu Samping"
-              >
-                <X className="w-5 h-5 stroke-[2.2]" />
-              </button>
-
-              {/* Collapse Button on Desktop */}
-              {onToggleCollapse && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer active:scale-95 shrink-0"
-                  title="Ciutkan Menu Samping"
-                  aria-label="Ciutkan Menu Samping"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </button>
+              {/* Close/Collapse fallback if brand header is hidden */}
+              {!showBrandHeader && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onCloseMobile?.()}
+                    className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 transition cursor-pointer active:scale-95"
+                    title="Tutup Menu Samping (Esc)"
+                    aria-label="Tutup Menu Samping"
+                  >
+                    <X className="w-5 h-5 stroke-[2.2]" />
+                  </button>
+                  {onToggleCollapse && (
+                    <button
+                      type="button"
+                      onClick={onToggleCollapse}
+                      className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer active:scale-95"
+                      title="Ciutkan Menu Samping"
+                      aria-label="Ciutkan Menu Samping"
+                    >
+                      <PanelLeftClose className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1.5">
               <UserAvatar
                 avatar={currentUser.avatar}
                 name={currentUser.name}
@@ -315,11 +421,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 rounded="rounded-xl"
                 className="border border-indigo-600/30 shadow-xs"
               />
-              {onToggleCollapse && (
+              {!showBrandHeader && onToggleCollapse && (
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer active:scale-95"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer active:scale-95"
                   title="Lebarkan Menu Samping"
                   aria-label="Lebarkan Menu Samping"
                 >
@@ -425,7 +531,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ) : (
             <div className="text-center">
-              <span className="text-[10px] font-bold text-slate-400">SIGMA</span>
+              <span className="text-[10px] font-bold text-slate-400">{collapsedLabel}</span>
             </div>
           )}
         </div>

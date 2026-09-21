@@ -37,6 +37,7 @@ import {
   normalizeIncomeCategory,
   getSystemSalaryCategory,
   getSystemSppCategory,
+  isSystemIncomeCategory,
   normalizeExpenseRefNumber,
   normalizeIncomeReceiptNumber,
 } from '../../utils/storage';
@@ -105,13 +106,18 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
 
     // Map Incomes
     incomes.forEach((inc, idx) => {
+      const isSpp = isSystemIncomeCategory(inc.category || '', settings) || inc.incomeCategory === 'spp_monthly';
       let desc = inc.notes || '';
       if (inc.incomeCategory === 'session_pack') {
         desc = `Paket ${inc.sessionsCount || 8} Sesi - ${inc.studentName || ''}`;
       } else if (inc.incomeCategory === 'registration') {
         desc = `Pendaftaran Siswa Baru - ${inc.studentName || ''}`;
-      } else if (inc.studentName) {
+      } else if (isSpp && inc.studentName) {
         desc = `Iuran Les ${getMonthNameIndo(inc.accrualMonth)} ${inc.accrualYear} (${inc.sessionsCount || 8} Sesi) - ${inc.studentName}`;
+      } else if (inc.notes && inc.notes.trim()) {
+        desc = inc.studentName ? `${inc.notes} - ${inc.studentName}` : inc.notes;
+      } else if (inc.studentName) {
+        desc = `${inc.category || 'Penerimaan Kas Masuk'} - ${inc.studentName}`;
       } else {
         desc = inc.category || 'Penerimaan Kas Masuk';
       }
@@ -228,7 +234,7 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
     });
 
     // Show newest first
-    return filtered.reverse();
+    return [...filtered].reverse();
   }, [transactionsWithBalance, searchTerm, filterType, filterMonth, filterYear, filterMethod, filterCategory]);
 
   // Pagination & Display Limit States
@@ -360,9 +366,10 @@ export const CashBookView: React.FC<CashBookViewProps> = ({
       'Catatan': tx.notes || '-',
     }));
 
+    const sanitizedBimbel = (settings?.bimbelName || 'Bimbel').replace(/\s+/g, '_');
     exportToExcel(
       dataForExcel,
-      `Buku_Kas_Bimbel_Sigma_${filterMonth !== 'All' ? `Bulan_${filterMonth}_` : ''}${filterYear}`,
+      `Buku_Kas_${sanitizedBimbel}_${filterMonth !== 'All' ? `Bulan_${filterMonth}_` : ''}${filterYear}`,
       'Buku Kas'
     );
   };

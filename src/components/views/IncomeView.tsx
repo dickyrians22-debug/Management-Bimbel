@@ -140,9 +140,10 @@ export const IncomeView: React.FC<IncomeViewProps> = ({
       };
     });
 
+    const sanitizedBimbel = (settings?.bimbelName || 'Bimbel').replace(/\s+/g, '_');
     exportToExcel(
       dataForExcel,
-      `Kas_Masuk_Bimbel_Sigma_${new Date().toISOString().split('T')[0]}`,
+      `Kas_Masuk_${sanitizedBimbel}_${new Date().toISOString().split('T')[0]}`,
       'Kas Masuk'
     );
   };
@@ -391,7 +392,7 @@ export const IncomeView: React.FC<IncomeViewProps> = ({
 
                     {/* Penerima */}
                     <td className="py-3 px-4 text-xs text-slate-600">
-                      {inc.receivedBy || 'Bimbel Sigma'}
+                      {inc.receivedBy || settings?.bimbelName || 'Bimbel'}
                     </td>
 
                     {/* Aksi & Kwitansi */}
