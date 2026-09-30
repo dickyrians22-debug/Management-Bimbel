@@ -14,7 +14,6 @@ import {
   Eye,
   CheckCircle2,
   XCircle,
-  RotateCcw,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
@@ -34,7 +33,6 @@ interface StudentDatabaseViewProps {
   settings?: BimbelSettings;
   onOpenStudentModal: (editStudent?: Student) => void;
   onDeleteStudent: (id: string, name: string) => void;
-  onResetStudents?: () => void;
   onOpenQRCard?: (student: Student) => void;
 }
 
@@ -45,7 +43,6 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
   settings,
   onOpenStudentModal,
   onDeleteStudent,
-  onResetStudents,
   onOpenQRCard,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,17 +156,6 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
       <div className="bg-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
         {/* Kelompok Data & Ekspor */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {canEdit && onResetStudents && (
-            <button
-              onClick={onResetStudents}
-              title="Perbarui / Muat ulang 25 data siswa lengkap sesuai daftar bimbel"
-              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>Sinkronkan 25 Siswa</span>
-            </button>
-          )}
-
           <button
             id="btn-export-students-excel"
             onClick={handleExportExcel}

@@ -2485,7 +2485,6 @@ export default function App() {
               settings={settings}
               onOpenStudentModal={handleOpenStudentModal}
               onDeleteStudent={handleDeleteStudent}
-              onResetStudents={handleResetToScreenshotStudents}
               onOpenQRCard={(student) => setQrCardStudent(student)}
             />
           )}
